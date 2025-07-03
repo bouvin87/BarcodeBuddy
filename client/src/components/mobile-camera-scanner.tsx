@@ -109,6 +109,13 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
         // Try immediately and set up event listeners
         tryPlayVideo();
         
+        // Debug container size
+        const container = videoRef.current.parentElement;
+        if (container) {
+          console.log('Container dimensions:', container.offsetWidth, 'x', container.offsetHeight);
+          console.log('Container computed style:', getComputedStyle(container).width, 'x', getComputedStyle(container).height);
+        }
+        
         videoRef.current.onloadedmetadata = () => {
           console.log('Video metadata loaded, dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
           tryPlayVideo();
@@ -278,7 +285,7 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
         // Camera active
         <div className="relative">
           {/* Video feed */}
-          <div className="relative bg-black aspect-video overflow-hidden">
+          <div className="relative bg-black aspect-video overflow-hidden min-h-[300px] w-full">
             <video
               ref={videoRef}
               autoPlay
