@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Barcode, NotebookPen, Check, AlertTriangle, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import ModernBarcodeScanner from "@/components/modern-barcode-scanner";
+import SimpleBarcodeInput from "@/components/simple-barcode-input";
 import ScannedBarcodesList from "@/components/scanned-barcodes-list";
 import type { ScanSession } from "@shared/schema";
 
@@ -213,8 +213,8 @@ export default function BarcodeScanner() {
           </div>
         </Card>
 
-        {/* Camera Scanner */}
-        <ModernBarcodeScanner onBarcodeScanned={handleBarcodeScanned} />
+        {/* Barcode Input */}
+        <SimpleBarcodeInput onBarcodeScanned={handleBarcodeScanned} />
 
         {/* Scanned Barcodes List */}
         <ScannedBarcodesList
