@@ -8,20 +8,22 @@ import {
 import { z } from "zod";
 import nodemailer from "nodemailer";
 
-// SMTP configuration - SSL enabled for Office 365
+// SMTP configuration with timeouts and better error handling
 const SMTP_CONFIG = {
   host: process.env.SMTP_HOST || "smtp.office365.com",
   port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: false, // Use STARTTLS instead of SSL
-  requireTLS: true, // Force TLS
+  secure: false, // Use STARTTLS
+  requireTLS: true,
   auth: {
     user: process.env.SMTP_USER || "info@europrofil.se",
     pass: process.env.SMTP_PASS || "Vinter2018!",
   },
   tls: {
-    ciphers: 'SSLv3',
     rejectUnauthorized: false,
   },
+  connectionTimeout: 10000, // 10 seconds
+  greetingTimeout: 5000, // 5 seconds
+  socketTimeout: 15000, // 15 seconds
 };
 
 const RECIPIENT_EMAIL =
@@ -106,12 +108,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       await storage.updateScanSession(id, { emailSent: "failed" });
 
-      res
-        .status(500)
-        .json({
-          message:
-            "Fel vid skickning av e-post. Kontrollera internetanslutningen och försök igen.",
-        });
+      res.status(500).json({
+        message: "Fel vid skickning av e-post. Kontrollera internetanslutningen och försök igen.",
+      });
+    }
+  });
+
+  // Test SMTP connection endpoint
+  app.post("/api/test-smtp", async (req, res) => {
+    try {
+      console.log("Testing SMTP connection...");
+      console.log(`Config: ${SMTP_CONFIG.host}:${SMTP_CONFIG.port}`);
+      console.log(`User: ${SMTP_CONFIG.auth.user}`);
+      
+      const testTransporter = nodemailer.createTransport({
+        ...SMTP_CONFIG,
+        connectionTimeout: 10000,
+        greetingTimeout: 5000,
+        socketTimeout: 8000
+      });
+      
+      console.log("Attempting SMTP verify...");
+      const verified = await testTransporter.verify();
+      console.log("SMTP verification result:", verified);
+      
+      res.json({ 
+        success: true, 
+        message: "SMTP-anslutning lyckades",
+        config: {
+          host: SMTP_CONFIG.host,
+          port: SMTP_CONFIG.port,
+          user: SMTP_CONFIG.auth.user.substring(0, 3) + "***"
+        }
+      });
+    } catch (error: any) {
+      console.error("SMTP test failed:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: `SMTP-test misslyckades: ${error.message}`,
+        code: error.code
+      });
     }
   });
 

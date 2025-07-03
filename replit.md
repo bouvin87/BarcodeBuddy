@@ -103,6 +103,8 @@ The application is built using a modern React frontend with TypeScript, Express.
 
 Changelog:
 - July 03, 2025. Initial setup
+- July 03, 2025. Added manual barcode input for testing when camera not available
+- July 03, 2025. SMTP configuration implemented but experiencing connection timeouts
 
 ## User Preferences
 
