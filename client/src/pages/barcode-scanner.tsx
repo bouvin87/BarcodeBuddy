@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Barcode, NotebookPen, Check, AlertTriangle, Trash2, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import CameraScanner from "@/components/camera-scanner";
@@ -245,7 +245,7 @@ export default function BarcodeScanner() {
           </Button>
           
           <p className="text-sm text-gray-500 text-center mt-3">
-            Rapporten skickas till: <span className="font-medium">logistics@company.se</span>
+            Rapporten skickas till konfigurerad e-postadress
           </p>
         </Card>
       </main>
@@ -253,6 +253,7 @@ export default function BarcodeScanner() {
       {/* Success Modal */}
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
         <DialogContent className="max-w-sm mx-auto text-center">
+          <DialogTitle className="sr-only">E-post skickad</DialogTitle>
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="h-8 w-8 text-green-600" />
           </div>
@@ -272,6 +273,7 @@ export default function BarcodeScanner() {
       {/* Error Modal */}
       <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
         <DialogContent className="max-w-sm mx-auto text-center">
+          <DialogTitle className="sr-only">Fel uppstod</DialogTitle>
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="h-8 w-8 text-red-600" />
           </div>

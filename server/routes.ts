@@ -8,14 +8,19 @@ import {
 import { z } from "zod";
 import nodemailer from "nodemailer";
 
-// SMTP configuration - hardcoded as requested
+// SMTP configuration - SSL enabled for Office 365
 const SMTP_CONFIG = {
   host: process.env.SMTP_HOST || "smtp.office365.com",
   port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: false,
+  secure: false, // Use STARTTLS instead of SSL
+  requireTLS: true, // Force TLS
   auth: {
     user: process.env.SMTP_USER || "info@europrofil.se",
     pass: process.env.SMTP_PASS || "Vinter2018!",
+  },
+  tls: {
+    ciphers: 'SSLv3',
+    rejectUnauthorized: false,
   },
 };
 
@@ -87,6 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         to: RECIPIENT_EMAIL,
         subject: `Leveransrapport - ${session.deliveryNoteNumber}`,
         html: emailContent,
+        
       });
 
       // Update session status
