@@ -1,22 +1,26 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertScanSessionSchema, updateScanSessionSchema } from "@shared/schema";
+import {
+  insertScanSessionSchema,
+  updateScanSessionSchema,
+} from "@shared/schema";
 import { z } from "zod";
 import nodemailer from "nodemailer";
 
 // SMTP configuration - hardcoded as requested
 const SMTP_CONFIG = {
-  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  host: process.env.SMTP_HOST || "smtp.office365.com",
   port: parseInt(process.env.SMTP_PORT || "587"),
   secure: false,
   auth: {
-    user: process.env.SMTP_USER || "your-email@gmail.com",
-    pass: process.env.SMTP_PASS || "your-app-password",
+    user: process.env.SMTP_USER || "info@europrofil.se",
+    pass: process.env.SMTP_PASS || "Vinter2018!",
   },
 };
 
-const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL || "logistics@company.se";
+const RECIPIENT_EMAIL =
+  process.env.RECIPIENT_EMAIL || "christian.bouvin@europrofil.se";
 
 const transporter = nodemailer.createTransport(SMTP_CONFIG);
 
@@ -69,14 +73,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const session = await storage.getScanSession(id);
-      
+
       if (!session) {
         return res.status(404).json({ message: "Scan session not found" });
       }
 
       // Generate email content
       const emailContent = generateEmailContent(session);
-      
+
       // Send email
       await transporter.sendMail({
         from: SMTP_CONFIG.auth.user,
@@ -91,12 +95,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Email sent successfully" });
     } catch (error) {
       console.error("Error sending email:", error);
-      
+
       // Update session status to failed
       const id = parseInt(req.params.id);
       await storage.updateScanSession(id, { emailSent: "failed" });
-      
-      res.status(500).json({ message: "Fel vid skickning av e-post. Kontrollera internetanslutningen och försök igen." });
+
+      res
+        .status(500)
+        .json({
+          message:
+            "Fel vid skickning av e-post. Kontrollera internetanslutningen och försök igen.",
+        });
     }
   });
 
@@ -106,7 +115,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 function generateEmailContent(session: any): string {
   const barcodesList = session.barcodes
-    .map((barcode: string, index: number) => `<tr><td>${index + 1}</td><td>${barcode}</td></tr>`)
+    .map(
+      (barcode: string, index: number) =>
+        `<tr><td>${index + 1}</td><td>${barcode}</td></tr>`,
+    )
     .join("");
 
   return `
@@ -142,10 +154,10 @@ function generateEmailContent(session: any): string {
             <span class="info-label">Följesedelnummer:</span> ${session.deliveryNoteNumber}
           </div>
           <div class="info-item">
-            <span class="info-label">Skanningsdatum:</span> ${new Date(session.createdAt).toLocaleDateString('sv-SE')}
+            <span class="info-label">Skanningsdatum:</span> ${new Date(session.createdAt).toLocaleDateString("sv-SE")}
           </div>
           <div class="info-item">
-            <span class="info-label">Skanningtid:</span> ${new Date(session.createdAt).toLocaleTimeString('sv-SE')}
+            <span class="info-label">Skanningtid:</span> ${new Date(session.createdAt).toLocaleTimeString("sv-SE")}
           </div>
         </div>
 
@@ -170,7 +182,7 @@ function generateEmailContent(session: any): string {
 
         <div class="footer">
           <p>Denna rapport genererades automatiskt av streckkodsskannersystemet.</p>
-          <p>Datum: ${new Date().toLocaleDateString('sv-SE')} ${new Date().toLocaleTimeString('sv-SE')}</p>
+          <p>Datum: ${new Date().toLocaleDateString("sv-SE")} ${new Date().toLocaleTimeString("sv-SE")}</p>
         </div>
       </div>
     </body>

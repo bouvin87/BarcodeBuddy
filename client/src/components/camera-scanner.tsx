@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Camera, QrCode } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Camera, QrCode, Keyboard } from "lucide-react";
 import { useBarcodeScanner } from "@/hooks/use-barcode-scanner";
 
 interface CameraScannerProps {
@@ -11,6 +12,8 @@ interface CameraScannerProps {
 export default function CameraScanner({ onBarcodeScanned }: CameraScannerProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
+  const [showManualInput, setShowManualInput] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -29,6 +32,18 @@ export default function CameraScanner({ onBarcodeScanned }: CameraScannerProps) 
 
   const startCamera = async () => {
     try {
+      // Check if getUserMedia is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        alert('Kamera stöds inte i denna webbläsare. Prova Chrome, Safari eller Firefox.');
+        return;
+      }
+
+      // Check if running on HTTPS (required for camera access)
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        alert('Kameraåtkomst kräver HTTPS. Kontakta din IT-avdelning för att aktivera säker anslutning.');
+        return;
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment', // Use back camera on mobile
@@ -46,9 +61,24 @@ export default function CameraScanner({ onBarcodeScanned }: CameraScannerProps) 
           initializeScanner(videoRef.current!, canvasRef.current!);
         };
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accessing camera:', error);
-      alert('Fel vid åtkomst till kamera. Kontrollera att kamerabehörigheter är aktiverade.');
+      
+      let errorMessage = 'Fel vid åtkomst till kamera. ';
+      
+      if (error.name === 'NotAllowedError') {
+        errorMessage += 'Kamerabehörighet nekades. Klicka på kameraikonen i adressfältet och tillåt kameraåtkomst.';
+      } else if (error.name === 'NotFoundError') {
+        errorMessage += 'Ingen kamera hittades. Kontrollera att enheten har en kamera.';
+      } else if (error.name === 'NotSupportedError') {
+        errorMessage += 'Kamera stöds inte i denna webbläsare.';
+      } else if (error.name === 'NotReadableError') {
+        errorMessage += 'Kameran används av en annan app. Stäng andra appar som använder kameran.';
+      } else {
+        errorMessage += 'Okänt fel. Försök uppdatera sidan eller kontakta support.';
+      }
+      
+      alert(errorMessage);
     }
   };
 
@@ -78,6 +108,20 @@ export default function CameraScanner({ onBarcodeScanned }: CameraScannerProps) 
     if (isInitialized && !isScanning) {
       setIsScanning(true);
       startScanning();
+    }
+  };
+
+  const handleManualSubmit = () => {
+    if (manualBarcode.trim()) {
+      onBarcodeScanned(manualBarcode.trim());
+      setManualBarcode("");
+      setShowManualInput(false);
+    }
+  };
+
+  const handleManualKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleManualSubmit();
     }
   };
 
@@ -178,8 +222,8 @@ export default function CameraScanner({ onBarcodeScanned }: CameraScannerProps) 
         )}
       </div>
 
-      {/* Quick scan button */}
-      <div className="p-4">
+      {/* Action buttons */}
+      <div className="p-4 space-y-3">
         <Button
           onClick={handleQuickScan}
           disabled={isScanning}
@@ -188,6 +232,47 @@ export default function CameraScanner({ onBarcodeScanned }: CameraScannerProps) 
           <QrCode className="h-4 w-4 mr-2" />
           {!isCameraActive ? 'Starta snabbskanning' : isScanning ? 'Skannar...' : 'Skanna nu'}
         </Button>
+
+        {/* Manual input toggle */}
+        {!showManualInput ? (
+          <Button
+            onClick={() => setShowManualInput(true)}
+            variant="outline"
+            className="w-full"
+          >
+            <Keyboard className="h-4 w-4 mr-2" />
+            Ange streckkod manuellt
+          </Button>
+        ) : (
+          <div className="space-y-2">
+            <Input
+              placeholder="Ange streckkod (t.ex. 1234567890)"
+              value={manualBarcode}
+              onChange={(e) => setManualBarcode(e.target.value)}
+              onKeyPress={handleManualKeyPress}
+              autoFocus
+            />
+            <div className="flex space-x-2">
+              <Button
+                onClick={handleManualSubmit}
+                disabled={!manualBarcode.trim()}
+                className="flex-1"
+              >
+                Lägg till
+              </Button>
+              <Button
+                onClick={() => {
+                  setShowManualInput(false);
+                  setManualBarcode("");
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Avbryt
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );
