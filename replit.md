@@ -49,7 +49,7 @@ The application is built using a modern React frontend with TypeScript, Express.
 - `POST /api/scan-sessions/:id/send-email` - Send email report
 
 ### UI Components
-- **SimpleBarcodeInput**: Manual barcode input with optional camera preview for mobile compatibility
+- **MobileCameraScanner**: Optimized camera scanner for mobile devices with flashlight and camera switching capabilities
 - **ScannedBarcodesList**: Displays and manages scanned barcode list
 - **shadcn/ui**: Comprehensive UI component library for consistent design
 
@@ -105,7 +105,7 @@ Changelog:
 - July 03, 2025. Initial setup
 - July 03, 2025. Added manual barcode input for testing when camera not available
 - July 03, 2025. SMTP configuration implemented but experiencing authentication issues
-- July 03, 2025. Replaced complex camera scanning with simple manual input and optional camera preview for better mobile compatibility
+- July 03, 2025. Implemented dedicated mobile camera scanner with proper error handling, flashlight support, and camera switching for reliable mobile camera access
 
 ## User Preferences
 
