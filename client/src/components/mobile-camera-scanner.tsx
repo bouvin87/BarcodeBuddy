@@ -16,6 +16,7 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('environment');
   const [manualInput, setManualInput] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
+  const [isVideoLoading, setIsVideoLoading] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -39,6 +40,7 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
   const startCamera = async () => {
     try {
       setError(null);
+      setIsVideoLoading(true);
       
       // Check if camera is supported
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -76,17 +78,35 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
           setHasFlashlight(capabilities && 'torch' in capabilities);
         }
         
-        // Wait for video to be ready
-        videoRef.current.onloadedmetadata = () => {
+        // Wait for video to be ready and force play
+        videoRef.current.onloadedmetadata = async () => {
           console.log('Video metadata loaded');
           if (videoRef.current) {
-            videoRef.current.play().then(() => {
-              console.log('Video playing');
+            console.log('Video dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+            
+            try {
+              // Force video attributes for mobile compatibility
+              videoRef.current.setAttribute('playsinline', 'true');
+              videoRef.current.setAttribute('webkit-playsinline', 'true');
+              videoRef.current.muted = true;
+              videoRef.current.autoplay = true;
+              
+              await videoRef.current.play();
+              console.log('Video playing successfully');
               setIsActive(true);
-            }).catch(err => {
+              
+              // Additional check after a short delay
+              setTimeout(() => {
+                if (videoRef.current && videoRef.current.videoWidth === 0) {
+                  console.warn('Video has no dimensions - might not be playing');
+                  setError('Video spelar men visar ingen bild. Prova att uppdatera sidan eller ge kamerabehörighet igen.');
+                }
+              }, 1000);
+              
+            } catch (err) {
               console.error('Error playing video:', err);
-              setError('Kunde inte starta videouppspelning');
-            });
+              setError('Kunde inte starta videouppspelning. Prova att uppdatera sidan.');
+            }
           }
         };
 
@@ -115,6 +135,7 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
       }
       
       setError(errorMessage);
+      setIsVideoLoading(false);
     }
   };
 
@@ -248,14 +269,44 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
         // Camera active
         <div className="relative">
           {/* Video feed */}
-          <div className="relative bg-black aspect-video">
+          <div className="relative bg-black aspect-video overflow-hidden">
             <video
               ref={videoRef}
               autoPlay
               playsInline
               muted
               className="w-full h-full object-cover"
+              style={{
+                transform: 'scaleX(-1)', // Mirror for better UX
+                minWidth: '100%',
+                minHeight: '100%',
+                objectFit: 'cover'
+              }}
+              onCanPlay={() => {
+                console.log('Video can play - should be visible now');
+              }}
+              onPlaying={() => {
+                console.log('Video is playing');
+                setIsActive(true);
+                setIsVideoLoading(false);
+              }}
+              onWaiting={() => {
+                console.log('Video is waiting for data');
+              }}
+              onLoadStart={() => {
+                console.log('Video load started');
+              }}
             />
+            
+            {/* Loading overlay */}
+            {isVideoLoading && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="text-white text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                  <p className="text-sm">Laddar kamera...</p>
+                </div>
+              </div>
+            )}
             
             {/* Scanning overlay */}
             <div className="absolute inset-0 flex items-center justify-center">
