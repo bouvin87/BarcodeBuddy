@@ -89,13 +89,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Update default headers for future requests
       const originalFetch = window.fetch;
       window.fetch = (url, options = {}) => {
-        return originalFetch(url, {
+        // Ensure options is an object and has headers
+        const updatedOptions = {
           ...options,
           headers: {
-            ...options.headers,
+            ...(options.headers || {}),
             Authorization: `Bearer ${sessionId}`,
           },
-        });
+        };
+        return originalFetch(url, updatedOptions);
       };
 
       // Cleanup function to restore original fetch
