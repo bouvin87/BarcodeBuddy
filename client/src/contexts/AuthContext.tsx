@@ -32,7 +32,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Check auth status
   const { data: authStatus, isLoading } = useQuery({
-    queryKey: ["auth-status"],
+    queryKey: ["auth-status", sessionId],
     queryFn: async () => {
       if (!sessionId) return { authenticated: false };
       
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return response.json();
     },
     retry: false,
+    enabled: !!sessionId, // Only run when we have a sessionId
   });
 
   // Login mutation
@@ -61,7 +62,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     onSuccess: (data: any) => {
       setSessionId(data.sessionId);
       localStorage.setItem("sessionId", data.sessionId);
-      queryClient.invalidateQueries({ queryKey: ["auth-status"] });
+      // Don't invalidate immediately - let the natural query refetch handle it
     },
   });
 

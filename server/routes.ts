@@ -40,7 +40,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Serverfel: Inloggningsuppgifter saknas" });
       }
       
-      if (username !== validUsername || password !== validPassword) {
+      if (username.toLowerCase() !== validUsername.toLowerCase() || password !== validPassword) {
         return res.status(401).json({ message: "Felaktigt användarnamn eller lösenord" });
       }
       
