@@ -1,42 +1,37 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { apiRequest } from "@/lib/queryClient";
-import { useLocation } from "wouter";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Login() {
-  const [, setLocation] = useLocation();
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const loginMutation = useMutation({
-    mutationFn: async ({ username, password }: { username: string; password: string }) => {
-      const response = await apiRequest("POST", "/api/auth/login", { username, password });
-      return response;
-    },
-    onSuccess: () => {
-      setLocation("/");
-    },
-    onError: (error: any) => {
-      setError(error.message || "Inloggning misslyckades");
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
     
     if (!username.trim() || !password.trim()) {
       setError("Användarnamn och lösenord måste anges");
+      setIsLoading(false);
       return;
     }
     
-    loginMutation.mutate({ username: username.trim(), password: password.trim() });
+    try {
+      await login(username.trim(), password.trim());
+      // Login successful - AuthContext will handle the redirect via App.tsx
+    } catch (error: any) {
+      setError(error.message || "Inloggning misslyckades");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -58,7 +53,7 @@ export default function Login() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Ange användarnamn"
-                disabled={loginMutation.isPending}
+                disabled={isLoading}
                 required
               />
             </div>
@@ -71,7 +66,7 @@ export default function Login() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Ange lösenord"
-                disabled={loginMutation.isPending}
+                disabled={isLoading}
                 required
               />
             </div>
@@ -85,9 +80,9 @@ export default function Login() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={loginMutation.isPending}
+              disabled={isLoading}
             >
-              {loginMutation.isPending ? "Loggar in..." : "Logga in"}
+              {isLoading ? "Loggar in..." : "Logga in"}
             </Button>
           </form>
         </CardContent>
