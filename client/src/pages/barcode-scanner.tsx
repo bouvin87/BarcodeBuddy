@@ -45,7 +45,7 @@ export default function BarcodeScanner() {
       deliveryNoteNumber: string;
       barcodes: string[];
     }) => {
-      const response = await apiRequest("/api/scan-sessions", "POST", data);
+      const response = await apiRequest("POST", "/api/scan-sessions", data);
       return response.json();
     },
     onSuccess: (session: ScanSession) => {
@@ -62,7 +62,7 @@ export default function BarcodeScanner() {
       id: number;
       barcodes: string[];
     }) => {
-      const response = await apiRequest(`/api/scan-sessions/${id}`, "PATCH", {
+      const response = await apiRequest("PATCH", `/api/scan-sessions/${id}`, {
         barcodes,
       });
       return response.json();
@@ -73,8 +73,8 @@ export default function BarcodeScanner() {
   const sendEmailMutation = useMutation({
     mutationFn: async (sessionId: number) => {
       const response = await apiRequest(
-        `/api/scan-sessions/${sessionId}/send-email`,
-        "POST"
+        "POST",
+        `/api/scan-sessions/${sessionId}/send-email`
       );
       return response.json();
     },
