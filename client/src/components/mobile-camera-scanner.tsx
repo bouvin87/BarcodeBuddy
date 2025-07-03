@@ -78,36 +78,45 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
           setHasFlashlight(capabilities && 'torch' in capabilities);
         }
         
-        // Wait for video to be ready and force play
-        videoRef.current.onloadedmetadata = async () => {
-          console.log('Video metadata loaded');
-          if (videoRef.current) {
-            console.log('Video dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+        // Force immediate display - don't wait for metadata
+        setIsActive(true);
+        setIsVideoLoading(false);
+        
+        // Try multiple approaches to get video working
+        const tryPlayVideo = async () => {
+          if (!videoRef.current) return;
+          
+          try {
+            // Set all possible video attributes
+            videoRef.current.setAttribute('playsinline', 'true');
+            videoRef.current.setAttribute('webkit-playsinline', 'true');
+            videoRef.current.setAttribute('muted', 'true');
+            videoRef.current.setAttribute('autoplay', 'true');
+            videoRef.current.muted = true;
+            videoRef.current.autoplay = true;
             
-            try {
-              // Force video attributes for mobile compatibility
-              videoRef.current.setAttribute('playsinline', 'true');
-              videoRef.current.setAttribute('webkit-playsinline', 'true');
-              videoRef.current.muted = true;
-              videoRef.current.autoplay = true;
-              
-              await videoRef.current.play();
-              console.log('Video playing successfully');
-              setIsActive(true);
-              
-              // Additional check after a short delay
-              setTimeout(() => {
-                if (videoRef.current && videoRef.current.videoWidth === 0) {
-                  console.warn('Video has no dimensions - might not be playing');
-                  setError('Video spelar men visar ingen bild. Prova att uppdatera sidan eller ge kamerabehörighet igen.');
-                }
-              }, 1000);
-              
-            } catch (err) {
-              console.error('Error playing video:', err);
-              setError('Kunde inte starta videouppspelning. Prova att uppdatera sidan.');
-            }
+            console.log('Attempting to play video...');
+            await videoRef.current.play();
+            console.log('Video play() succeeded');
+            
+          } catch (err) {
+            console.error('Video play error:', err);
+            // Try again after a short delay
+            setTimeout(() => tryPlayVideo(), 100);
           }
+        };
+        
+        // Try immediately and set up event listeners
+        tryPlayVideo();
+        
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Video metadata loaded, dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight);
+          tryPlayVideo();
+        };
+        
+        videoRef.current.oncanplay = () => {
+          console.log('Video can play');
+          tryPlayVideo();
         };
 
         videoRef.current.onerror = (err) => {
@@ -275,12 +284,15 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover bg-gray-800"
               style={{
                 transform: 'scaleX(-1)', // Mirror for better UX
                 minWidth: '100%',
                 minHeight: '100%',
-                objectFit: 'cover'
+                objectFit: 'cover',
+                display: 'block',
+                visibility: 'visible',
+                opacity: 1
               }}
               onCanPlay={() => {
                 console.log('Video can play - should be visible now');
@@ -295,6 +307,18 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
               }}
               onLoadStart={() => {
                 console.log('Video load started');
+              }}
+              onLoadedData={() => {
+                console.log('Video data loaded');
+              }}
+              onError={(e) => {
+                console.error('Video element error:', e);
+              }}
+              onSuspend={() => {
+                console.log('Video suspended');
+              }}
+              onStalled={() => {
+                console.log('Video stalled');
               }}
             />
             
