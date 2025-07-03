@@ -83,29 +83,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     },
   });
 
-  // Set Authorization header for all requests
-  useEffect(() => {
-    if (sessionId) {
-      // Update default headers for future requests
-      const originalFetch = window.fetch;
-      window.fetch = (url, options = {}) => {
-        // Ensure options is an object and has headers
-        const updatedOptions = {
-          ...options,
-          headers: {
-            ...(options.headers || {}),
-            Authorization: `Bearer ${sessionId}`,
-          },
-        };
-        return originalFetch(url, updatedOptions);
-      };
-
-      // Cleanup function to restore original fetch
-      return () => {
-        window.fetch = originalFetch;
-      };
-    }
-  }, [sessionId]);
+  // Note: Authorization headers are handled by individual API calls
 
   const login = async (username: string, password: string) => {
     await loginMutation.mutateAsync({ username, password });
