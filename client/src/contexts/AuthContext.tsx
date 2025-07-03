@@ -55,8 +55,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async ({ username, password }: { username: string; password: string }) => {
-      const response = await apiRequest("/api/auth/login", "POST", { username, password });
-      return response;
+      const response = await apiRequest("POST", "/api/auth/login", { username, password });
+      return response.json();
     },
     onSuccess: (data: any) => {
       setSessionId(data.sessionId);
