@@ -13,7 +13,7 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastScanned = useRef<string | null>(null);
   const lastScannedAt = useRef<number>(0);
-  const scannerControls = useRef<ReturnType<BrowserMultiFormatReader["decodeFromConstraints"]> | null>(null);
+  const scannerControls = useRef<any | null>(null);
 
   const [facingMode, setFacingMode] = useState<"environment" | "user">("environment");
   const [manualInput, setManualInput] = useState("");
@@ -27,7 +27,7 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
 
     const startScanner = async () => {
       try {
-        scannerControls.current = await codeReader.decodeFromConstraints(
+        const controls = await codeReader.decodeFromConstraints(
           {
             video: { facingMode },
           },
@@ -47,6 +47,7 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
             }
           }
         );
+        scannerControls.current = controls;
       } catch (err) {
         console.error("Kamerafel:", err);
       }
@@ -98,10 +99,13 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
             autoPlay
             playsInline
             muted
+            preload="none"
             className="w-full h-full object-cover"
             style={{
               transform: facingMode === "user" ? "scaleX(-1)" : "none",
             }}
+            onLoadStart={() => console.log("Video loading started")}
+            onCanPlay={() => console.log("Video can play")}
           />
 
           {/* 🔲 Visuell ram */}

@@ -96,6 +96,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           },
         });
       };
+
+      // Cleanup function to restore original fetch
+      return () => {
+        window.fetch = originalFetch;
+      };
     }
   }, [sessionId]);
 

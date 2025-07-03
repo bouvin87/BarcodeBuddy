@@ -147,7 +147,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Scan session not found" });
       }
 
-      await emailService.sendScanSessionReport(session);
+      await emailService.sendScanSessionReport({
+        deliveryNoteNumber: session.deliveryNoteNumber,
+        createdAt: session.createdAt.toISOString(),
+        barcodes: session.barcodes
+      });
       await storage.updateScanSession(id, { emailSent: "sent" });
 
       res.json({ message: "Email sent successfully" });

@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import {
   FileText,
   Barcode,
@@ -45,7 +45,7 @@ export default function BarcodeScanner() {
       deliveryNoteNumber: string;
       barcodes: string[];
     }) => {
-      const response = await apiRequest("POST", "/api/scan-sessions", data);
+      const response = await apiRequest("/api/scan-sessions", "POST", data);
       return response.json();
     },
     onSuccess: (session: ScanSession) => {
@@ -62,7 +62,7 @@ export default function BarcodeScanner() {
       id: number;
       barcodes: string[];
     }) => {
-      const response = await apiRequest("PATCH", `/api/scan-sessions/${id}`, {
+      const response = await apiRequest(`/api/scan-sessions/${id}`, "PATCH", {
         barcodes,
       });
       return response.json();
@@ -73,8 +73,8 @@ export default function BarcodeScanner() {
   const sendEmailMutation = useMutation({
     mutationFn: async (sessionId: number) => {
       const response = await apiRequest(
-        "POST",
         `/api/scan-sessions/${sessionId}/send-email`,
+        "POST"
       );
       return response.json();
     },
@@ -219,18 +219,20 @@ export default function BarcodeScanner() {
                 Streckkodsskanner
               </h1>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => logout()}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-            <div className="bg-primary/10 px-3 py-1 rounded-full">
-              <span className="text-sm font-medium text-primary">
-                {scannedBarcodes.length} skannade
-              </span>
+            <div className="flex items-center space-x-3">
+              <div className="bg-primary/10 px-3 py-1 rounded-full">
+                <span className="text-sm font-medium text-primary">
+                  {scannedBarcodes.length} skannade
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => logout()}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                <LogOut className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -305,6 +307,9 @@ export default function BarcodeScanner() {
       <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
         <DialogContent className="max-w-sm mx-auto text-center">
           <DialogTitle className="sr-only">E-post skickad</DialogTitle>
+          <DialogDescription className="sr-only">
+            Rapporten med streckkoder har skickats via e-post
+          </DialogDescription>
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="h-8 w-8 text-green-600" />
           </div>
@@ -324,6 +329,9 @@ export default function BarcodeScanner() {
       <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
         <DialogContent className="max-w-sm mx-auto text-center">
           <DialogTitle className="sr-only">Fel uppstod</DialogTitle>
+          <DialogDescription className="sr-only">
+            Ett fel uppstod när rapporten skulle skickas via e-post
+          </DialogDescription>
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="h-8 w-8 text-red-600" />
           </div>
