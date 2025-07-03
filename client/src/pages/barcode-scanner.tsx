@@ -1,12 +1,22 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { FileText, Barcode, NotebookPen, Check, AlertTriangle, Trash2, X } from "lucide-react";
+import {
+  FileText,
+  Barcode,
+  NotebookPen,
+  Check,
+  AlertTriangle,
+  Trash2,
+  LogOut,
+  X,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import MobileCameraScanner from "@/components/mobile-camera-scanner";
 import ScannedBarcodesList from "@/components/scanned-barcodes-list";
@@ -18,19 +28,23 @@ interface ScannedBarcode {
 }
 
 export default function BarcodeScanner() {
+  const { logout } = useAuth();
   const [deliveryNoteNumber, setDeliveryNoteNumber] = useState("");
   const [scannedBarcodes, setScannedBarcodes] = useState<ScannedBarcode[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Create scan session mutation
   const createSessionMutation = useMutation({
-    mutationFn: async (data: { deliveryNoteNumber: string; barcodes: string[] }) => {
+    mutationFn: async (data: {
+      deliveryNoteNumber: string;
+      barcodes: string[];
+    }) => {
       const response = await apiRequest("POST", "/api/scan-sessions", data);
       return response.json();
     },
@@ -41,8 +55,16 @@ export default function BarcodeScanner() {
 
   // Update scan session mutation
   const updateSessionMutation = useMutation({
-    mutationFn: async ({ id, barcodes }: { id: number; barcodes: string[] }) => {
-      const response = await apiRequest("PATCH", `/api/scan-sessions/${id}`, { barcodes });
+    mutationFn: async ({
+      id,
+      barcodes,
+    }: {
+      id: number;
+      barcodes: string[];
+    }) => {
+      const response = await apiRequest("PATCH", `/api/scan-sessions/${id}`, {
+        barcodes,
+      });
       return response.json();
     },
   });
@@ -50,7 +72,10 @@ export default function BarcodeScanner() {
   // Send email mutation
   const sendEmailMutation = useMutation({
     mutationFn: async (sessionId: number) => {
-      const response = await apiRequest("POST", `/api/scan-sessions/${sessionId}/send-email`);
+      const response = await apiRequest(
+        "POST",
+        `/api/scan-sessions/${sessionId}/send-email`,
+      );
       return response.json();
     },
     onSuccess: () => {
@@ -64,14 +89,17 @@ export default function BarcodeScanner() {
       }, 3000);
     },
     onError: (error: any) => {
-      setErrorMessage(error.message || "Det gick inte att skicka e-posten. Kontrollera internetanslutningen och försök igen.");
+      setErrorMessage(
+        error.message ||
+          "Det gick inte att skicka e-posten. Kontrollera internetanslutningen och försök igen.",
+      );
       setShowErrorModal(true);
     },
   });
 
   const handleBarcodeScanned = async (barcode: string) => {
     // Check for duplicates
-    if (scannedBarcodes.some(b => b.value === barcode)) {
+    if (scannedBarcodes.some((b) => b.value === barcode)) {
       toast({
         title: "Dublett upptäckt",
         description: "Denna streckkod har redan skannats",
@@ -82,9 +110,9 @@ export default function BarcodeScanner() {
 
     const newBarcode: ScannedBarcode = {
       value: barcode,
-      timestamp: new Date().toLocaleTimeString('sv-SE', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
+      timestamp: new Date().toLocaleTimeString("sv-SE", {
+        hour: "2-digit",
+        minute: "2-digit",
       }),
     };
 
@@ -92,10 +120,13 @@ export default function BarcodeScanner() {
     setScannedBarcodes(updatedBarcodes);
 
     // Create or update session
-    const barcodeValues = updatedBarcodes.map(b => b.value);
-    
+    const barcodeValues = updatedBarcodes.map((b) => b.value);
+
     if (currentSessionId) {
-      updateSessionMutation.mutate({ id: currentSessionId, barcodes: barcodeValues });
+      updateSessionMutation.mutate({
+        id: currentSessionId,
+        barcodes: barcodeValues,
+      });
     } else if (deliveryNoteNumber.trim()) {
       createSessionMutation.mutate({
         deliveryNoteNumber: deliveryNoteNumber.trim(),
@@ -114,8 +145,11 @@ export default function BarcodeScanner() {
     setScannedBarcodes(updatedBarcodes);
 
     if (currentSessionId) {
-      const barcodeValues = updatedBarcodes.map(b => b.value);
-      updateSessionMutation.mutate({ id: currentSessionId, barcodes: barcodeValues });
+      const barcodeValues = updatedBarcodes.map((b) => b.value);
+      updateSessionMutation.mutate({
+        id: currentSessionId,
+        barcodes: barcodeValues,
+      });
     }
   };
 
@@ -149,7 +183,7 @@ export default function BarcodeScanner() {
       sendEmailMutation.mutate(currentSessionId);
     } else {
       // Create session first, then send
-      const barcodeValues = scannedBarcodes.map(b => b.value);
+      const barcodeValues = scannedBarcodes.map((b) => b.value);
       const session = await createSessionMutation.mutateAsync({
         deliveryNoteNumber: deliveryNoteNumber.trim(),
         barcodes: barcodeValues,
@@ -160,10 +194,10 @@ export default function BarcodeScanner() {
 
   const handleDeliveryNoteChange = (value: string) => {
     setDeliveryNoteNumber(value);
-    
+
     // Create new session if we have barcodes but no session yet
     if (value.trim() && scannedBarcodes.length > 0 && !currentSessionId) {
-      const barcodeValues = scannedBarcodes.map(b => b.value);
+      const barcodeValues = scannedBarcodes.map((b) => b.value);
       createSessionMutation.mutate({
         deliveryNoteNumber: value.trim(),
         barcodes: barcodeValues,
@@ -181,8 +215,18 @@ export default function BarcodeScanner() {
               <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                 <Barcode className="text-primary-foreground text-sm" />
               </div>
-              <h1 className="text-lg font-semibold text-gray-900">Streckkodsskanner</h1>
+              <h1 className="text-lg font-semibold text-gray-900">
+                Streckkodsskanner
+              </h1>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => logout()}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
             <div className="bg-primary/10 px-3 py-1 rounded-full">
               <span className="text-sm font-medium text-primary">
                 {scannedBarcodes.length} skannade
@@ -195,7 +239,10 @@ export default function BarcodeScanner() {
       <main className="max-w-md mx-auto px-4 py-6 space-y-6">
         {/* Delivery Note Input */}
         <Card className="p-4">
-          <Label htmlFor="delivery-note" className="block text-sm font-medium text-gray-700 mb-2">
+          <Label
+            htmlFor="delivery-note"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Följesedelnummer
           </Label>
           <div className="relative">
@@ -227,7 +274,11 @@ export default function BarcodeScanner() {
         <Card className="p-4">
           <Button
             onClick={handleSendEmail}
-            disabled={!deliveryNoteNumber.trim() || scannedBarcodes.length === 0 || sendEmailMutation.isPending}
+            disabled={
+              !deliveryNoteNumber.trim() ||
+              scannedBarcodes.length === 0 ||
+              sendEmailMutation.isPending
+            }
             className="w-full bg-green-600 hover:bg-green-700 text-white py-4 text-lg font-semibold h-auto"
             size="lg"
           >
@@ -243,7 +294,7 @@ export default function BarcodeScanner() {
               </div>
             )}
           </Button>
-          
+
           <p className="text-sm text-gray-500 text-center mt-3">
             Rapporten skickas till konfigurerad e-postadress
           </p>
@@ -257,14 +308,13 @@ export default function BarcodeScanner() {
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="h-8 w-8 text-green-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">E-post skickad!</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            E-post skickad!
+          </h3>
           <p className="text-gray-600 text-sm mb-6">
-            Rapporten med {scannedBarcodes.length} streckkoder har skickats till logistics@company.se
+            Rapporten med {scannedBarcodes.length} streckkoder har skickats!
           </p>
-          <Button
-            onClick={() => setShowSuccessModal(false)}
-            className="w-full"
-          >
+          <Button onClick={() => setShowSuccessModal(false)} className="w-full">
             Fortsätt
           </Button>
         </DialogContent>
@@ -277,10 +327,10 @@ export default function BarcodeScanner() {
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="h-8 w-8 text-red-600" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Fel uppstod</h3>
-          <p className="text-gray-600 text-sm mb-6">
-            {errorMessage}
-          </p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Fel uppstod
+          </h3>
+          <p className="text-gray-600 text-sm mb-6">{errorMessage}</p>
           <div className="space-y-3">
             <Button
               onClick={() => {
