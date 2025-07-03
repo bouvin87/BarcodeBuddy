@@ -5,33 +5,38 @@ import {
   insertScanSessionSchema,
   updateScanSessionSchema,
 } from "@shared/schema";
-import { z } from "zod";
 import nodemailer from "nodemailer";
 
-// SMTP configuration with timeouts and better error handling
+// SMTP configuration (fully env-based)
 const SMTP_CONFIG = {
-  host: process.env.SMTP_HOST || "smtp.office365.com",
-  port: parseInt(process.env.SMTP_PORT || "587"),
-  secure: false, // Use STARTTLS
-  requireTLS: true,
+  host: "smtp.office365.com",
+  port: "587",
+  secure: false,
   auth: {
-    user: process.env.SMTP_USER || "info@europrofil.se",
-    pass: process.env.SMTP_PASS || "Vinter2018!",
+    user: "info@europrofil.se",
+    pass: "Vinter2018!",
   },
-  tls: {
-    rejectUnauthorized: false,
+  headers: {
+    "X-Mailer": "System by Selection API",
   },
-  connectionTimeout: 10000, // 10 seconds
-  greetingTimeout: 5000, // 5 seconds
-  socketTimeout: 15000, // 15 seconds
+  connectionTimeout: 10000,
+  greetingTimeout: 5000,
+  socketTimeout: 15000,
 };
 
-const RECIPIENT_EMAIL =
-  process.env.RECIPIENT_EMAIL || "christian.bouvin@europrofil.se";
+const RECIPIENT_EMAIL = process.env.RECIPIENT_EMAIL;
+const FROM_EMAIL = process.env.FROM_EMAIL || process.env.SMTP_USER;
 
 const transporter = nodemailer.createTransport(SMTP_CONFIG);
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Verifiera SMTP vid start
+  transporter.verify().then(() => {
+    console.log("✅ SMTP-anslutning OK");
+  }).catch((err) => {
+    console.error("❌ SMTP-anslutning misslyckades:", err);
+  });
+
   // Create scan session
   app.post("/api/scan-sessions", async (req, res) => {
     try {
@@ -59,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update scan session (add barcodes)
+  // Update scan session
   app.patch("/api/scan-sessions/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -77,156 +82,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Send email with scan report
   app.post("/api/scan-sessions/:id/send-email", async (req, res) => {
+    const id = parseInt(req.params.id);
     try {
-      const id = parseInt(req.params.id);
       const session = await storage.getScanSession(id);
-
       if (!session) {
         return res.status(404).json({ message: "Scan session not found" });
       }
 
-      // Generate email content
       const emailContent = generateEmailContent(session);
 
-      // Send email using the global transporter
-      await transporter.sendMail({
-        from: SMTP_CONFIG.auth.user,
+      const result = await transporter.sendMail({
+        from: {
+          name: "System by Selections",
+          address: FROM_EMAIL,
+        },
         to: RECIPIENT_EMAIL,
         subject: `Leveransrapport - ${session.deliveryNoteNumber}`,
         html: emailContent,
+        text: emailContent.replace(/<[^>]*>/g, ""), // fallback-textversion
       });
 
-      // Update session status
-      await storage.updateScanSession(id, { emailSent: "sent" });
+      console.log("✉️  E-post skickad:", result.messageId);
 
+      await storage.updateScanSession(id, { emailSent: "sent" });
       res.json({ message: "Email sent successfully" });
+
     } catch (error) {
       console.error("Error sending email:", error);
-
-      // Update session status to failed
-      const id = parseInt(req.params.id);
       await storage.updateScanSession(id, { emailSent: "failed" });
-
       res.status(500).json({
-        message: "Fel vid skickning av e-post. Kontrollera internetanslutningen och försök igen.",
+        message: "Fel vid skickning av e-post. Kontrollera konfiguration och anslutning.",
       });
     }
   });
 
-  // Test SMTP connection endpoint
+  // Test SMTP connection
   app.post("/api/test-smtp", async (req, res) => {
     try {
-      console.log("Testing SMTP connection...");
-      console.log(`Config: ${SMTP_CONFIG.host}:${SMTP_CONFIG.port}`);
-      console.log(`User: ${SMTP_CONFIG.auth.user}`);
-      
-      const testTransporter = nodemailer.createTransport({
-        ...SMTP_CONFIG,
-        connectionTimeout: 10000,
-        greetingTimeout: 5000,
-        socketTimeout: 8000
-      });
-      
-      console.log("Attempting SMTP verify...");
-      const verified = await testTransporter.verify();
-      console.log("SMTP verification result:", verified);
-      
-      res.json({ 
-        success: true, 
+      await transporter.verify();
+      res.json({
+        success: true,
         message: "SMTP-anslutning lyckades",
         config: {
           host: SMTP_CONFIG.host,
           port: SMTP_CONFIG.port,
-          user: SMTP_CONFIG.auth.user.substring(0, 3) + "***"
-        }
+          user: SMTP_CONFIG.auth.user?.replace(/(.{3}).+(@.+)/, "$1***$2"),
+        },
       });
     } catch (error: any) {
-      console.error("SMTP test failed:", error);
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         message: `SMTP-test misslyckades: ${error.message}`,
-        code: error.code
+        code: error.code,
       });
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  return createServer(app);
 }
 
+// Generate HTML for scan session email
 function generateEmailContent(session: any): string {
-  const barcodesList = session.barcodes
-    .map(
-      (barcode: string, index: number) =>
-        `<tr><td>${index + 1}</td><td>${barcode}</td></tr>`,
-    )
-    .join("");
+  const barcodesList = session.barcodes.map(
+    (barcode: string, index: number) =>
+      `<tr><td>${index + 1}</td><td>${barcode}</td></tr>`
+  ).join("");
 
   return `
     <!DOCTYPE html>
     <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5; }
-        .container { max-width: 600px; margin: 0 auto; background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header { background-color: #2563eb; color: white; padding: 20px; border-radius: 8px 8px 0 0; margin: -30px -30px 30px -30px; }
-        .header h1 { margin: 0; font-size: 24px; }
-        .info-section { margin-bottom: 30px; }
-        .info-section h2 { color: #1d4ed8; font-size: 18px; margin-bottom: 10px; }
-        .info-item { margin-bottom: 10px; }
-        .info-label { font-weight: bold; color: #374151; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-        th { background-color: #f9fafb; font-weight: bold; color: #374151; }
-        .summary { background-color: #eff6ff; padding: 15px; border-radius: 6px; margin-top: 20px; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>📦 Leveransrapport</h1>
-        </div>
-        
-        <div class="info-section">
-          <h2>Leveransinformation</h2>
-          <div class="info-item">
-            <span class="info-label">Följesedelnummer:</span> ${session.deliveryNoteNumber}
-          </div>
-          <div class="info-item">
-            <span class="info-label">Skanningsdatum:</span> ${new Date(session.createdAt).toLocaleDateString("sv-SE")}
-          </div>
-          <div class="info-item">
-            <span class="info-label">Skanningtid:</span> ${new Date(session.createdAt).toLocaleTimeString("sv-SE")}
-          </div>
-        </div>
-
-        <div class="info-section">
-          <h2>Skannade streckkoder</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Nr</th>
-                <th>Streckkod</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${barcodesList}
-            </tbody>
-          </table>
-          
-          <div class="summary">
-            <strong>Totalt antal skannade artiklar: ${session.barcodes.length}</strong>
-          </div>
-        </div>
-
-        <div class="footer">
-          <p>Denna rapport genererades automatiskt av streckkodsskannersystemet.</p>
-          <p>Datum: ${new Date().toLocaleDateString("sv-SE")} ${new Date().toLocaleTimeString("sv-SE")}</p>
-        </div>
+    <head><meta charset="UTF-8"><style>
+      body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+      .container { background: white; max-width: 600px; margin: auto; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+      .header { background: #2563eb; color: white; padding: 20px; border-radius: 8px 8px 0 0; margin: -30px -30px 30px -30px; }
+      .header h1 { margin: 0; font-size: 24px; }
+      .info-section h2 { color: #1d4ed8; font-size: 18px; margin-bottom: 10px; }
+      .info-item { margin-bottom: 10px; }
+      .info-label { font-weight: bold; color: #374151; }
+      table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+      th, td { padding: 12px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+      th { background-color: #f9fafb; color: #374151; }
+      .summary { background: #eff6ff; padding: 15px; border-radius: 6px; margin-top: 20px; font-weight: bold; }
+      .footer { margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 14px; color: #6b7280; }
+    </style></head>
+    <body><div class="container">
+      <div class="header"><h1>📦 Leveransrapport</h1></div>
+      <div class="info-section">
+        <h2>Leveransinformation</h2>
+        <div class="info-item"><span class="info-label">Följesedelnummer:</span> ${session.deliveryNoteNumber}</div>
+        <div class="info-item"><span class="info-label">Skanningsdatum:</span> ${new Date(session.createdAt).toLocaleDateString("sv-SE")}</div>
+        <div class="info-item"><span class="info-label">Skanningtid:</span> ${new Date(session.createdAt).toLocaleTimeString("sv-SE")}</div>
       </div>
-    </body>
+      <div class="info-section">
+        <h2>Skannade streckkoder</h2>
+        <table>
+          <thead><tr><th>Nr</th><th>Streckkod</th></tr></thead>
+          <tbody>${barcodesList}</tbody>
+        </table>
+        <div class="summary">Totalt antal skannade artiklar: ${session.barcodes.length}</div>
+      </div>
+      <div class="footer">
+        <p>Denna rapport genererades automatiskt av streckkodsskannersystemet.</p>
+        <p>${new Date().toLocaleDateString("sv-SE")} ${new Date().toLocaleTimeString("sv-SE")}</p>
+      </div>
+    </div></body>
     </html>
   `;
 }
