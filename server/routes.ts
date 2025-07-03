@@ -88,13 +88,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate email content
       const emailContent = generateEmailContent(session);
 
-      // Send email
+      // Send email using the global transporter
       await transporter.sendMail({
         from: SMTP_CONFIG.auth.user,
         to: RECIPIENT_EMAIL,
         subject: `Leveransrapport - ${session.deliveryNoteNumber}`,
         html: emailContent,
-        
       });
 
       // Update session status

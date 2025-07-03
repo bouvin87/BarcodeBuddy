@@ -53,12 +53,33 @@ export default function CameraScanner({ onBarcodeScanned }: CameraScannerProps) 
       });
 
       if (videoRef.current) {
+        console.log('Setting video stream...');
         videoRef.current.srcObject = stream;
-        setIsCameraActive(true);
         
-        // Initialize scanner when video is ready
-        videoRef.current.onloadedmetadata = () => {
-          initializeScanner(videoRef.current!, canvasRef.current!);
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = async () => {
+          console.log('Video metadata loaded');
+          if (videoRef.current) {
+            console.log('Video dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight);
+            
+            // Play the video
+            try {
+              await videoRef.current.play();
+              console.log('Video playing successfully');
+              setIsCameraActive(true);
+              
+              // Initialize scanner after video starts playing
+              setTimeout(() => {
+                initializeScanner(videoRef.current!, canvasRef.current!);
+              }, 500);
+            } catch (playError) {
+              console.error('Error playing video:', playError);
+            }
+          }
+        };
+        
+        videoRef.current.onerror = (error) => {
+          console.error('Video error:', error);
         };
       }
     } catch (error: any) {
@@ -158,7 +179,11 @@ export default function CameraScanner({ onBarcodeScanned }: CameraScannerProps) 
               autoPlay
               playsInline
               muted
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover bg-black"
+              style={{ 
+                transform: 'scaleX(-1)', // Mirror the video for better UX
+                minHeight: '300px'
+              }}
             />
             
             {/* Canvas for QuaggaJS */}
