@@ -44,9 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Felaktigt användarnamn eller lösenord" });
       }
       
-      // Create session
+      // Create session with longer expiry (7 days)
       const sessionId = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
       
       await storage.createAuthSession(sessionId, username, expiresAt);
       
@@ -85,9 +85,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const session = await storage.getAuthSession(sessionId);
+      
+      // Check if session exists and is not expired
+      if (!session) {
+        return res.json({ authenticated: false });
+      }
+      
+      // Check if session is expired
+      if (session.expiresAt < new Date()) {
+        // Clean up expired session
+        await storage.deleteAuthSession(sessionId);
+        return res.json({ authenticated: false });
+      }
+      
       res.json({ 
-        authenticated: !!session,
-        userId: session?.userId 
+        authenticated: true,
+        userId: session.userId 
       });
     } catch (error) {
       console.error("Auth status error:", error);

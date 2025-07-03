@@ -50,7 +50,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return response.json();
     },
     retry: false,
-    enabled: !!sessionId, // Only run when we have a sessionId
+    enabled: true, // Always try to check auth status
+    refetchOnMount: true,
+    refetchOnWindowFocus: false
   });
 
   // Login mutation

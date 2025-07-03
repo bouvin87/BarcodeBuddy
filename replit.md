@@ -106,6 +106,7 @@ Changelog:
 - July 03, 2025. Added manual barcode input for testing when camera not available
 - July 03, 2025. SMTP configuration implemented but experiencing authentication issues
 - July 03, 2025. Implemented dedicated mobile camera scanner with proper error handling, flashlight support, and camera switching for reliable mobile camera access
+- July 03, 2025. Major bug fixes: Fixed API parameter order issues, login double-click problem, fetch override memory leaks, dialog accessibility warnings, case-insensitive usernames, and extended session duration to 7 days for better user experience
 
 ## User Preferences
 
