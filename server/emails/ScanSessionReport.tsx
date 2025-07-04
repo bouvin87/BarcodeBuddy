@@ -132,11 +132,11 @@ export const ScanSessionReportEmail = ({
                           </>
                         ) : (
                           <>
-                            <td style={{ border: "1px solid #d1d5db", padding: "6px", color: "#6b7280" }}>-</td>
+                            <td style={{ border: "1px solid #d1d5db", padding: "6px", color: "#6b7280" }}>Enkel kod</td>
                             <td style={{ border: "1px solid #d1d5db", padding: "6px", fontFamily: "monospace" }}>
-                              {code}
+                              -
                             </td>
-                            <td style={{ border: "1px solid #d1d5db", padding: "6px", color: "#6b7280" }}>Streckkod</td>
+                            <td style={{ border: "1px solid #d1d5db", padding: "6px", color: "#6b7280" }}>{code}</td>
                             <td style={{ border: "1px solid #d1d5db", padding: "6px", color: "#6b7280", textAlign: "right" }}>-</td>
                           </>
                         )}
@@ -149,7 +149,7 @@ export const ScanSessionReportEmail = ({
               <Row>
                 <Column>
                   <Text style={styles.metaText}>
-                    Rapport skapad: {new Date().toLocaleString("sv-SE")}
+                    Följesedeln skickad: {new Date().toLocaleString("sv-SE")}
                   </Text>
                 </Column>
               </Row>

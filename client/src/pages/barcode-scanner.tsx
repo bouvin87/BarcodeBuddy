@@ -120,17 +120,13 @@ export default function BarcodeScanner() {
   });
 
   const handleBarcodeScanned = async (barcode: string) => {
-    // Use functional state update to check for duplicates with latest state
-    let isDuplicate = false;
-    setScannedBarcodes((prevBarcodes) => {
-      isDuplicate = prevBarcodes.some((b) => b.value === barcode);
-      return prevBarcodes; // Don't update yet, just check
-    });
+    // Check for duplicates using current state
+    const isDuplicate = scannedBarcodes.some((b) => b.value === barcode);
 
     if (isDuplicate) {
       toast({
         title: "Dublett upptäckt",
-        description: "Denna batch har redan skannats",
+        description: "Denna streckkod/QR-kod har redan skannats",
         variant: "destructive",
       });
       return;
@@ -144,28 +140,23 @@ export default function BarcodeScanner() {
       }),
     };
 
-    let updatedBarcodes: ScannedBarcode[];
-    setScannedBarcodes((prevBarcodes) => {
-      updatedBarcodes = [...prevBarcodes, newBarcode];
-      return updatedBarcodes;
-    });
+    const updatedBarcodes = [...scannedBarcodes, newBarcode];
+    setScannedBarcodes(updatedBarcodes);
 
-    // Use setTimeout to ensure state has updated before creating session
-    setTimeout(() => {
-      const barcodeValues = updatedBarcodes.map((b) => b.value);
-
-      if (currentSessionId) {
-        updateSessionMutation.mutate({
-          id: currentSessionId,
-          barcodes: barcodeValues,
-        });
-      } else if (deliveryNoteNumber.trim()) {
-        createSessionMutation.mutate({
-          deliveryNoteNumber: deliveryNoteNumber.trim(),
-          barcodes: barcodeValues,
-        });
-      }
-    }, 0);
+    // Update session with new barcodes
+    const barcodeValues = updatedBarcodes.map((b) => b.value);
+    
+    if (currentSessionId) {
+      updateSessionMutation.mutate({
+        id: currentSessionId,
+        barcodes: barcodeValues,
+      });
+    } else if (deliveryNoteNumber.trim()) {
+      createSessionMutation.mutate({
+        deliveryNoteNumber: deliveryNoteNumber.trim(),
+        barcodes: barcodeValues,
+      });
+    }
 
     toast({
       title: "Batch skannad",
