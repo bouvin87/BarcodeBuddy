@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RotateCw, Plus, Camera } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RotateCw, Plus, Camera, Package, Keyboard } from "lucide-react";
 import { BrowserMultiFormatReader } from "@zxing/browser";
 
 interface MobileCameraScannerProps {
@@ -19,6 +21,12 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
   const [manualInput, setManualInput] = useState("");
   const [showManualInput, setShowManualInput] = useState(false);
   const [cameraActive, setCameraActive] = useState(false);
+  
+  // Structured data input
+  const [orderNumber, setOrderNumber] = useState("");
+  const [articleNumber, setArticleNumber] = useState("");
+  const [batchNumber, setBatchNumber] = useState("");
+  const [weight, setWeight] = useState("");
 
   useEffect(() => {
     if (!cameraActive) return;
@@ -69,9 +77,25 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
     if (manualInput.trim()) {
       onBarcodeScanned(manualInput.trim());
       setManualInput("");
-      // setShowManualInput(""); ← OBS! Du kan ta bort denna för att behålla öppet
     }
   };
+
+  const handleStructuredSubmit = () => {
+    if (orderNumber.trim() && articleNumber.trim() && batchNumber.trim()) {
+      // Create QR code format: ordernummer;artikelnummer;batchnummer;vikt
+      const weightValue = weight.trim() || "0";
+      const qrCode = `${orderNumber.trim()};${articleNumber.trim()};${batchNumber.trim()};${weightValue}`;
+      onBarcodeScanned(qrCode);
+      
+      // Clear form
+      setOrderNumber("");
+      setArticleNumber("");
+      setBatchNumber("");
+      setWeight("");
+    }
+  };
+
+  const isStructuredFormValid = orderNumber.trim() && articleNumber.trim() && batchNumber.trim();
   const stopCamera = () => {
     scannerControls.current?.stop();
     scannerControls.current = null;
@@ -136,25 +160,96 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
           variant="outline"
           className="w-full"
         >
-          Skriv in streckkod manuellt
+          Manuell inmatning
         </Button>
 
         {showManualInput && (
-          <div className="bg-gray-100 rounded-lg p-4 space-y-3">
-            <Input
-              placeholder="Skriv streckkod här..."
-              value={manualInput}
-              onChange={(e) => setManualInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
-            />
-            <Button
-              onClick={handleManualSubmit}
-              disabled={!manualInput.trim()}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Lägg till
-            </Button>
+          <div className="bg-gray-50 rounded-lg p-4">
+            <Tabs defaultValue="simple" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="simple" className="text-sm">
+                  <Keyboard className="h-4 w-4 mr-1" />
+                  Enkel kod
+                </TabsTrigger>
+                <TabsTrigger value="structured" className="text-sm">
+                  <Package className="h-4 w-4 mr-1" />
+                  Strukturerad
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="simple" className="space-y-3 mt-3">
+                <Input
+                  placeholder="Skriv streckkod här..."
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
+                />
+                <Button
+                  onClick={handleManualSubmit}
+                  disabled={!manualInput.trim()}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Lägg till
+                </Button>
+              </TabsContent>
+              
+              <TabsContent value="structured" className="space-y-3 mt-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="order-num" className="text-xs">Ordernummer *</Label>
+                    <Input
+                      id="order-num"
+                      placeholder="75555"
+                      value={orderNumber}
+                      onChange={(e) => setOrderNumber(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="batch-num" className="text-xs">Batch *</Label>
+                    <Input
+                      id="batch-num"
+                      placeholder="G-2558-1"
+                      value={batchNumber}
+                      onChange={(e) => setBatchNumber(e.target.value)}
+                      className="text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-1">
+                  <Label htmlFor="article-num" className="text-xs">Artikelnummer *</Label>
+                  <Input
+                    id="article-num"
+                    placeholder="1,0x100 S350 Z275 EVO"
+                    value={articleNumber}
+                    onChange={(e) => setArticleNumber(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <Label htmlFor="weight-input" className="text-xs">Vikt (kg)</Label>
+                  <Input
+                    id="weight-input"
+                    placeholder="1500"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+                
+                <Button
+                  onClick={handleStructuredSubmit}
+                  disabled={!isStructuredFormValid}
+                  className="w-full"
+                >
+                  <Package className="h-4 w-4 mr-2" />
+                  Registrera QR-post
+                </Button>
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </div>
