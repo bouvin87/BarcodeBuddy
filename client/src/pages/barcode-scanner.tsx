@@ -137,14 +137,18 @@ export default function BarcodeScanner() {
       }),
     };
 
-    const updatedBarcodes = [...scannedBarcodes, newBarcode];
-    const barcodeValues = updatedBarcodes.map((b) => b.value);
-    
-    console.log("Adding barcode, new list:", barcodeValues);
-    
-    // Update both state and ref immediately - no backend session yet
-    setScannedBarcodes(updatedBarcodes);
-    currentBarcodesRef.current = barcodeValues;
+    // Use functional update to ensure we work with latest state
+    setScannedBarcodes((currentBarcodes) => {
+      const updatedBarcodes = [...currentBarcodes, newBarcode];
+      const barcodeValues = updatedBarcodes.map((b) => b.value);
+      
+      console.log("Adding barcode, new list:", barcodeValues);
+      
+      // Update ref with latest values
+      currentBarcodesRef.current = barcodeValues;
+      
+      return updatedBarcodes;
+    });
 
     toast({
       title: "Batch skannad",
@@ -153,16 +157,20 @@ export default function BarcodeScanner() {
   };
 
   const handleRemoveBarcode = (index: number) => {
-    const updatedBarcodes = scannedBarcodes.filter((_, i) => i !== index);
-    const barcodeValues = updatedBarcodes.map((b) => b.value);
-    
-    setScannedBarcodes(updatedBarcodes);
-    currentBarcodesRef.current = barcodeValues;
+    setScannedBarcodes((currentBarcodes) => {
+      const updatedBarcodes = currentBarcodes.filter((_, i) => i !== index);
+      const barcodeValues = updatedBarcodes.map((b) => b.value);
+      currentBarcodesRef.current = barcodeValues;
+      return updatedBarcodes;
+    });
   };
 
   const handleClearAll = () => {
-    setScannedBarcodes([]);
-    currentBarcodesRef.current = [];
+    setScannedBarcodes((currentBarcodes) => {
+      console.log("Clearing all barcodes, had:", currentBarcodes.length);
+      currentBarcodesRef.current = [];
+      return [];
+    });
     toast({
       title: "Alla poster rensade",
       description: "Alla skannade streckkoder har tagits bort",
