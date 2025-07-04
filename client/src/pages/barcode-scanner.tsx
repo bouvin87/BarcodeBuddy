@@ -36,6 +36,8 @@ export default function BarcodeScanner() {
   const [errorMessage, setErrorMessage] = useState("");
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
 
+  console.log("🔄 Component render - scannedBarcodes:", scannedBarcodes, "sessionId:", currentSessionId);
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -80,10 +82,12 @@ export default function BarcodeScanner() {
       return response.json();
     },
     onSuccess: () => {
+      console.log("📧 Email sent successfully - clearing state");
       setShowSuccessModal(true);
       // Clear state immediately when email is sent
       setScannedBarcodes([]);
       setCurrentSessionId(null);
+      console.log("🧹 State cleared - barcodes and sessionId reset");
       // Hide success modal after 3 seconds but keep form reset immediate
       setTimeout(() => {
         setShowSuccessModal(false);
