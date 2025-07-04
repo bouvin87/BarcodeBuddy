@@ -44,7 +44,7 @@ export default function BarcodeScanner() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+
   const [sentBarcodesCount, setSentBarcodesCount] = useState(0);
   const [sentWeight, setSentWeight] = useState(0);
   
@@ -70,25 +70,11 @@ export default function BarcodeScanner() {
       return response.json();
     },
     onSuccess: (session: ScanSession) => {
-      setCurrentSessionId(session.id);
+      // Session created successfully
     },
   });
 
-  // Update scan session mutation
-  const updateSessionMutation = useMutation({
-    mutationFn: async ({
-      id,
-      barcodes,
-    }: {
-      id: number;
-      barcodes: string[];
-    }) => {
-      const response = await apiRequest("PATCH", `/api/scan-sessions/${id}`, {
-        barcodes,
-      });
-      return response.json();
-    },
-  });
+
 
   // Send email mutation
   const sendEmailMutation = useMutation({
@@ -107,7 +93,6 @@ export default function BarcodeScanner() {
       // Clear state immediately when email is sent
       setScannedBarcodes([]);
       currentBarcodesRef.current = [];
-      setCurrentSessionId(null);
       // Hide success modal after 3 seconds but keep form reset immediate
       setTimeout(() => {
         setShowSuccessModal(false);
@@ -147,21 +132,9 @@ export default function BarcodeScanner() {
     const updatedBarcodes = [...scannedBarcodes, newBarcode];
     const barcodeValues = updatedBarcodes.map((b) => b.value);
     
-    // Update both state and ref immediately
+    // Update both state and ref immediately - no backend session yet
     setScannedBarcodes(updatedBarcodes);
     currentBarcodesRef.current = barcodeValues;
-    
-    if (currentSessionId) {
-      updateSessionMutation.mutate({
-        id: currentSessionId,
-        barcodes: barcodeValues,
-      });
-    } else if (deliveryNoteNumber.trim()) {
-      createSessionMutation.mutate({
-        deliveryNoteNumber: deliveryNoteNumber.trim(),
-        barcodes: barcodeValues,
-      });
-    }
 
     toast({
       title: "Batch skannad",
@@ -175,19 +148,11 @@ export default function BarcodeScanner() {
     
     setScannedBarcodes(updatedBarcodes);
     currentBarcodesRef.current = barcodeValues;
-
-    if (currentSessionId) {
-      updateSessionMutation.mutate({
-        id: currentSessionId,
-        barcodes: barcodeValues,
-      });
-    }
   };
 
   const handleClearAll = () => {
     setScannedBarcodes([]);
     currentBarcodesRef.current = [];
-    setCurrentSessionId(null);
     toast({
       title: "Alla poster rensade",
       description: "Alla skannade streckkoder har tagits bort",
@@ -213,30 +178,18 @@ export default function BarcodeScanner() {
       return;
     }
 
-    if (currentSessionId) {
-      sendEmailMutation.mutate(currentSessionId);
-    } else {
-      // Create session first, then send
-      const barcodeValues = scannedBarcodes.map((b) => b.value);
-      const session = await createSessionMutation.mutateAsync({
-        deliveryNoteNumber: deliveryNoteNumber.trim(),
-        barcodes: barcodeValues,
-      });
-      sendEmailMutation.mutate(session.id);
-    }
+    // Always create a new session when sending email
+    const barcodeValues = scannedBarcodes.map((b) => b.value);
+    const session = await createSessionMutation.mutateAsync({
+      deliveryNoteNumber: deliveryNoteNumber.trim(),
+      barcodes: barcodeValues,
+    });
+    sendEmailMutation.mutate(session.id);
   };
 
   const handleDeliveryNoteChange = (value: string) => {
     setDeliveryNoteNumber(value);
-
-    // Create new session if we have barcodes but no session yet
-    if (value.trim() && scannedBarcodes.length > 0 && !currentSessionId) {
-      const barcodeValues = scannedBarcodes.map((b) => b.value);
-      createSessionMutation.mutate({
-        deliveryNoteNumber: value.trim(),
-        barcodes: barcodeValues,
-      });
-    }
+    // No session creation here - only when sending email
   };
 
   return (
@@ -411,9 +364,7 @@ export default function BarcodeScanner() {
             <Button
               onClick={() => {
                 setShowErrorModal(false);
-                if (currentSessionId) {
-                  sendEmailMutation.mutate(currentSessionId);
-                }
+                handleSendEmail();
               }}
               className="w-full"
             >
