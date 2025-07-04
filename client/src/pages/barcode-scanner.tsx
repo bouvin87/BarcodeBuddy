@@ -80,16 +80,13 @@ export default function BarcodeScanner() {
     },
     onSuccess: () => {
       setShowSuccessModal(true);
-      // Clear the current session's barcodes immediately
-      if (currentSessionId) {
-        updateSessionMutation.mutate({ id: currentSessionId, barcodes: [] });
-      }
-      // Reset form after successful send
+      // Clear state immediately when email is sent
+      setScannedBarcodes([]);
+      setCurrentSessionId(null);
+      // Hide success modal after 3 seconds but keep form reset immediate
       setTimeout(() => {
-        setDeliveryNoteNumber("");
-        setScannedBarcodes([]);
-        setCurrentSessionId(null);
         setShowSuccessModal(false);
+        setDeliveryNoteNumber("");
       }, 3000);
     },
     onError: (error: any) => {
