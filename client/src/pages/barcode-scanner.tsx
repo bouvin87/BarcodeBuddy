@@ -126,23 +126,29 @@ export default function BarcodeScanner() {
       }),
     };
 
-    const updatedBarcodes = [...scannedBarcodes, newBarcode];
-    setScannedBarcodes(updatedBarcodes);
+    let updatedBarcodes: ScannedBarcode[];
+    setScannedBarcodes(prevBarcodes => {
+      updatedBarcodes = [...prevBarcodes, newBarcode];
+      console.log("📦 Updated barcodes:", updatedBarcodes);
+      return updatedBarcodes;
+    });
 
-    // Create or update session
-    const barcodeValues = updatedBarcodes.map((b) => b.value);
-
-    if (currentSessionId) {
-      updateSessionMutation.mutate({
-        id: currentSessionId,
-        barcodes: barcodeValues,
-      });
-    } else if (deliveryNoteNumber.trim()) {
-      createSessionMutation.mutate({
-        deliveryNoteNumber: deliveryNoteNumber.trim(),
-        barcodes: barcodeValues,
-      });
-    }
+    // Use setTimeout to ensure state has updated before creating session
+    setTimeout(() => {
+      const barcodeValues = updatedBarcodes.map((b) => b.value);
+      
+      if (currentSessionId) {
+        updateSessionMutation.mutate({
+          id: currentSessionId,
+          barcodes: barcodeValues,
+        });
+      } else if (deliveryNoteNumber.trim()) {
+        createSessionMutation.mutate({
+          deliveryNoteNumber: deliveryNoteNumber.trim(),
+          barcodes: barcodeValues,
+        });
+      }
+    }, 0);
 
     toast({
       title: "Streckkod skannad",
