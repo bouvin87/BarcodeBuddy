@@ -28,14 +28,14 @@ export const emailService = {
     );
     
     // 2. Skapa förbättrad CSV-innehåll med rubriker
-    const csvLines = ["Index;Ordernummer;Artikelnummer;Batchnummer;Vikt (kg);Rådata"];
+    const csvLines = ["Index;Ordernummer;Artikelnummer;Batchnummer;Vikt"];
     session.barcodes.forEach((barcode, index) => {
       const parsed = parseQRCode(barcode);
       if (parsed) {
-        csvLines.push(`${index + 1};${parsed.orderNumber};${parsed.articleNumber};${parsed.batchNumber};${parsed.weight};${parsed.rawData}`);
+        csvLines.push(`${index + 1};${parsed.orderNumber};${parsed.articleNumber};${parsed.batchNumber};${parsed.weight}`);
       } else {
         // Fallback för vanliga streckkoder
-        csvLines.push(`${index + 1};;;0;${barcode}`);
+        csvLines.push(`${index + 1};;;;${barcode};0`);
       }
     });
     const csvContent = csvLines.join("\n");

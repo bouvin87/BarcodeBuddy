@@ -1,6 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Barcode, Trash2, X } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Barcode, Trash2, X, Package, Hash, Scale } from "lucide-react";
+import { parseQRCode, formatWeight } from "@shared/qr-parser";
 
 interface ScannedBarcode {
   value: string;
@@ -37,44 +40,97 @@ export default function ScannedBarcodesList({
         </div>
       </div>
 
-      <div className="divide-y divide-gray-100">
-        {barcodes.length === 0 ? (
-          // Empty state
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Barcode className="h-8 w-8 text-gray-400" />
-            </div>
-            <p className="text-gray-500 text-sm">Inga streckkoder skannade än</p>
-            <p className="text-gray-400 text-xs mt-1">Använd kameran ovan för att börja skanna</p>
+      {barcodes.length === 0 ? (
+        // Empty state
+        <div className="p-8 text-center">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Barcode className="h-8 w-8 text-gray-400" />
           </div>
-        ) : (
-          // Barcodes list
-          barcodes.map((barcode, index) => (
-            <div 
-              key={`${barcode.value}-${index}`}
-              className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <Barcode className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{barcode.value}</p>
-                  <p className="text-sm text-gray-500">Skannad {barcode.timestamp}</p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onRemoveBarcode(index)}
-                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))
-        )}
-      </div>
+          <p className="text-gray-500 text-sm">Inga streckkoder skannade än</p>
+          <p className="text-gray-400 text-xs mt-1">Använd kameran ovan för att börja skanna</p>
+        </div>
+      ) : (
+        // Table view
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[40px]">#</TableHead>
+                <TableHead>Order</TableHead>
+                <TableHead>Artikel</TableHead>
+                <TableHead>Batch</TableHead>
+                <TableHead className="text-right">Vikt</TableHead>
+                <TableHead className="w-[60px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {barcodes.map((barcode, index) => {
+                const parsed = parseQRCode(barcode.value);
+                const isQRCode = parsed !== null;
+                
+                return (
+                  <TableRow key={`${barcode.value}-${index}`}>
+                    <TableCell className="font-medium text-xs">
+                      <div className="flex items-center space-x-1">
+                        <span>{index + 1}</span>
+                        {isQRCode ? (
+                          <Package className="h-3 w-3 text-blue-500" />
+                        ) : (
+                          <Barcode className="h-3 w-3 text-gray-400" />
+                        )}
+                      </div>
+                    </TableCell>
+                    
+                    {isQRCode ? (
+                      <>
+                        <TableCell>
+                          <div className="font-medium text-sm">{parsed.orderNumber}</div>
+                          <div className="text-xs text-gray-500">{barcode.timestamp}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm max-w-[120px] truncate" title={parsed.articleNumber}>
+                            {parsed.articleNumber}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            <Hash className="h-3 w-3 mr-1" />
+                            {parsed.batchNumber}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end text-sm font-medium text-purple-600">
+                            <Scale className="h-3 w-3 mr-1" />
+                            {formatWeight(parsed.weight)}
+                          </div>
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell colSpan={4}>
+                          <div className="text-sm font-medium">{barcode.value}</div>
+                          <div className="text-xs text-gray-500">{barcode.timestamp}</div>
+                        </TableCell>
+                      </>
+                    )}
+                    
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onRemoveBarcode(index)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </Card>
   );
 }
