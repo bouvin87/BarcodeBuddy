@@ -35,8 +35,9 @@ export default function BarcodeScanner() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
+  const [sentBarcodesCount, setSentBarcodesCount] = useState(0);
 
-  console.log("🔄 Component render - scannedBarcodes:", scannedBarcodes, "sessionId:", currentSessionId);
+
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -51,7 +52,6 @@ export default function BarcodeScanner() {
       return response.json();
     },
     onSuccess: (session: ScanSession) => {
-      console.log("✅ Session created:", session);
       setCurrentSessionId(session.id);
     },
   });
@@ -82,12 +82,12 @@ export default function BarcodeScanner() {
       return response.json();
     },
     onSuccess: () => {
-      console.log("📧 Email sent successfully - clearing state");
+      // Save count before clearing
+      setSentBarcodesCount(scannedBarcodes.length);
       setShowSuccessModal(true);
       // Clear state immediately when email is sent
       setScannedBarcodes([]);
       setCurrentSessionId(null);
-      console.log("🧹 State cleared - barcodes and sessionId reset");
       // Hide success modal after 3 seconds but keep form reset immediate
       setTimeout(() => {
         setShowSuccessModal(false);
@@ -104,10 +104,6 @@ export default function BarcodeScanner() {
   });
 
   const handleBarcodeScanned = async (barcode: string) => {
-    console.log("🔍 Scanning barcode:", barcode);
-    console.log("📦 Current scanned barcodes:", scannedBarcodes);
-    console.log("🆔 Current session ID:", currentSessionId);
-    
     // Use functional state update to check for duplicates with latest state
     let isDuplicate = false;
     setScannedBarcodes(prevBarcodes => {
@@ -135,7 +131,6 @@ export default function BarcodeScanner() {
     let updatedBarcodes: ScannedBarcode[];
     setScannedBarcodes(prevBarcodes => {
       updatedBarcodes = [...prevBarcodes, newBarcode];
-      console.log("📦 Updated barcodes:", updatedBarcodes);
       return updatedBarcodes;
     });
 
@@ -339,7 +334,7 @@ export default function BarcodeScanner() {
             E-post skickad!
           </h3>
           <p className="text-gray-600 text-sm mb-6">
-            Rapporten med {scannedBarcodes.length} streckkoder har skickats!
+            Rapporten med {sentBarcodesCount} streckkoder har skickats!
           </p>
           <Button onClick={() => setShowSuccessModal(false)} className="w-full">
             Fortsätt
