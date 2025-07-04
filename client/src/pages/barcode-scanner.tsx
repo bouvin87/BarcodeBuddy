@@ -108,8 +108,14 @@ export default function BarcodeScanner() {
     console.log("📦 Current scanned barcodes:", scannedBarcodes);
     console.log("🆔 Current session ID:", currentSessionId);
     
-    // Check for duplicates
-    if (scannedBarcodes.some((b) => b.value === barcode)) {
+    // Use functional state update to check for duplicates with latest state
+    let isDuplicate = false;
+    setScannedBarcodes(prevBarcodes => {
+      isDuplicate = prevBarcodes.some((b) => b.value === barcode);
+      return prevBarcodes; // Don't update yet, just check
+    });
+    
+    if (isDuplicate) {
       toast({
         title: "Dublett upptäckt",
         description: "Denna streckkod har redan skannats",
