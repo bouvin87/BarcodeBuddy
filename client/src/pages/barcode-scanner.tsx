@@ -120,12 +120,8 @@ export default function BarcodeScanner() {
   });
 
   const handleBarcodeScanned = async (barcode: string) => {
-    console.log("Scanning barcode:", barcode);
-    console.log("Current scanned barcodes:", scannedBarcodes.map(b => b.value));
-    
     // Check for duplicates using current state
     const isDuplicate = scannedBarcodes.some((b) => b.value === barcode);
-    console.log("Is duplicate?", isDuplicate);
 
     if (isDuplicate) {
       toast({
