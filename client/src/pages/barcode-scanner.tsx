@@ -49,6 +49,7 @@ export default function BarcodeScanner() {
       return response.json();
     },
     onSuccess: (session: ScanSession) => {
+      console.log("✅ Session created:", session);
       setCurrentSessionId(session.id);
     },
   });
@@ -99,6 +100,10 @@ export default function BarcodeScanner() {
   });
 
   const handleBarcodeScanned = async (barcode: string) => {
+    console.log("🔍 Scanning barcode:", barcode);
+    console.log("📦 Current scanned barcodes:", scannedBarcodes);
+    console.log("🆔 Current session ID:", currentSessionId);
+    
     // Check for duplicates
     if (scannedBarcodes.some((b) => b.value === barcode)) {
       toast({
