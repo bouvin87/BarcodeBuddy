@@ -2,7 +2,7 @@ import React from "react";
 import nodemailer from "nodemailer";
 import { render } from "@react-email/render";
 import { ScanSessionReportEmail } from "./emails/ScanSessionReport";
-import { parseQRCode, calculateTotalWeight, groupByOrder } from "@shared/qr-parser";
+import { parseQRCode, calculateTotalWeight } from "@shared/qr-parser";
 import fs from "fs";
 import path from "path";
 
@@ -14,7 +14,6 @@ export const emailService = {
   }) {
     // Process QR codes to extract structured data
     const totalWeight = calculateTotalWeight(session.barcodes);
-    const orderGroups = groupByOrder(session.barcodes);
     
     const html = await render(
       <ScanSessionReportEmail
@@ -22,7 +21,6 @@ export const emailService = {
         createdAt={session.createdAt}
         barcodes={session.barcodes}
         totalWeight={totalWeight}
-        orderGroups={orderGroups}
       />,
       { pretty: true },
     );
