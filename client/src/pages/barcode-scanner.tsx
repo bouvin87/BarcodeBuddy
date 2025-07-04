@@ -86,13 +86,16 @@ export default function BarcodeScanner() {
       return response.json();
     },
     onSuccess: () => {
-      // Save count and weight before clearing
-      setSentBarcodesCount(scannedBarcodes.length);
-      setSentWeight(totalWeight);
-      setShowSuccessModal(true);
-      // Clear state immediately when email is sent
-      setScannedBarcodes([]);
-      currentBarcodesRef.current = [];
+      // Use functional updates to get current state
+      setScannedBarcodes((currentBarcodes) => {
+        console.log("Email sent! Clearing barcodes, current count:", currentBarcodes.length);
+        setSentBarcodesCount(currentBarcodes.length);
+        setSentWeight(calculateTotalWeight(currentBarcodes.map(b => b.value)));
+        setShowSuccessModal(true);
+        currentBarcodesRef.current = [];
+        return [];
+      });
+      
       // Hide success modal after 3 seconds but keep form reset immediate
       setTimeout(() => {
         setShowSuccessModal(false);
@@ -109,10 +112,15 @@ export default function BarcodeScanner() {
   });
 
   const handleBarcodeScanned = async (barcode: string) => {
+    console.log("Scanning barcode:", barcode);
+    console.log("Current ref barcodes:", currentBarcodesRef.current);
+    console.log("Current state barcodes:", scannedBarcodes.map(b => b.value));
+    
     // Check for duplicates using ref for immediate access to current state
     const isDuplicate = currentBarcodesRef.current.includes(barcode);
 
     if (isDuplicate) {
+      console.log("Duplicate detected!");
       toast({
         title: "Dublett upptäckt",
         description: "Denna streckkod/QR-kod har redan skannats",
@@ -131,6 +139,8 @@ export default function BarcodeScanner() {
 
     const updatedBarcodes = [...scannedBarcodes, newBarcode];
     const barcodeValues = updatedBarcodes.map((b) => b.value);
+    
+    console.log("Adding barcode, new list:", barcodeValues);
     
     // Update both state and ref immediately - no backend session yet
     setScannedBarcodes(updatedBarcodes);
