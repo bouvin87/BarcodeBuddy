@@ -80,6 +80,10 @@ export default function BarcodeScanner() {
     },
     onSuccess: () => {
       setShowSuccessModal(true);
+      // Clear the current session's barcodes immediately
+      if (currentSessionId) {
+        updateSessionMutation.mutate({ id: currentSessionId, barcodes: [] });
+      }
       // Reset form after successful send
       setTimeout(() => {
         setDeliveryNoteNumber("");
