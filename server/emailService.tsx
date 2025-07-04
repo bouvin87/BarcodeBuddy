@@ -2,6 +2,7 @@ import React from "react";
 import nodemailer from "nodemailer";
 import { render } from "@react-email/render";
 import { ScanSessionReportEmail } from "./emails/ScanSessionReport";
+import { parseQRCode, calculateTotalWeight, groupByOrder } from "@shared/qr-parser";
 import fs from "fs";
 import path from "path";
 
@@ -11,18 +12,31 @@ export const emailService = {
     createdAt: string;
     barcodes: string[];
   }) {
+    // Process QR codes to extract structured data
+    const totalWeight = calculateTotalWeight(session.barcodes);
+    const orderGroups = groupByOrder(session.barcodes);
+    
     const html = await render(
       <ScanSessionReportEmail
         deliveryNoteNumber={session.deliveryNoteNumber}
         createdAt={session.createdAt}
         barcodes={session.barcodes}
+        totalWeight={totalWeight}
+        orderGroups={orderGroups}
       />,
       { pretty: true },
     );
-    // 2. Skapa CSV-innehåll
-    const csvLines = ["Index;Streckkod"];
+    
+    // 2. Skapa förbättrad CSV-innehåll med rubriker
+    const csvLines = ["Index;Ordernummer;Artikelnummer;Batchnummer;Vikt (kg);Rådata"];
     session.barcodes.forEach((barcode, index) => {
-      csvLines.push(`${index + 1};${barcode}`);
+      const parsed = parseQRCode(barcode);
+      if (parsed) {
+        csvLines.push(`${index + 1};${parsed.orderNumber};${parsed.articleNumber};${parsed.batchNumber};${parsed.weight};${parsed.rawData}`);
+      } else {
+        // Fallback för vanliga streckkoder
+        csvLines.push(`${index + 1};;;0;${barcode}`);
+      }
     });
     const csvContent = csvLines.join("\n");
 

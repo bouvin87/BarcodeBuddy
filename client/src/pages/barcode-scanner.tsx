@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import MobileCameraScanner from "@/components/mobile-camera-scanner";
 import ScannedBarcodesList from "@/components/scanned-barcodes-list";
 import type { ScanSession } from "@shared/schema";
+import { parseQRCode, calculateTotalWeight, formatWeight } from "@shared/qr-parser";
 
 interface ScannedBarcode {
   value: string;
@@ -36,8 +37,11 @@ export default function BarcodeScanner() {
   const [errorMessage, setErrorMessage] = useState("");
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [sentBarcodesCount, setSentBarcodesCount] = useState(0);
+  const [sentWeight, setSentWeight] = useState(0);
 
-
+  // Calculate total weight from scanned barcodes
+  const totalWeight = calculateTotalWeight(scannedBarcodes.map(b => b.value));
+  const qrCodeCount = scannedBarcodes.filter(b => parseQRCode(b.value) !== null).length;
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -82,8 +86,9 @@ export default function BarcodeScanner() {
       return response.json();
     },
     onSuccess: () => {
-      // Save count before clearing
+      // Save count and weight before clearing
       setSentBarcodesCount(scannedBarcodes.length);
+      setSentWeight(totalWeight);
       setShowSuccessModal(true);
       // Clear state immediately when email is sent
       setScannedBarcodes([]);
@@ -282,6 +287,38 @@ export default function BarcodeScanner() {
         {/* Camera Scanner */}
         <MobileCameraScanner onBarcodeScanned={handleBarcodeScanned} />
 
+        {/* Statistics Card */}
+        {scannedBarcodes.length > 0 && (
+          <Card className="p-4 bg-blue-50 border-blue-200">
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <div className="text-2xl font-bold text-blue-600">
+                  {scannedBarcodes.length}
+                </div>
+                <div className="text-xs text-blue-800 font-medium">
+                  TOTAL
+                </div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-green-600">
+                  {qrCodeCount}
+                </div>
+                <div className="text-xs text-green-800 font-medium">
+                  QR-KODER
+                </div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-purple-600">
+                  {formatWeight(totalWeight)}
+                </div>
+                <div className="text-xs text-purple-800 font-medium">
+                  TOTAL VIKT
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Scanned Barcodes List */}
         <ScannedBarcodesList
           barcodes={scannedBarcodes}
@@ -333,9 +370,16 @@ export default function BarcodeScanner() {
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             E-post skickad!
           </h3>
-          <p className="text-gray-600 text-sm mb-6">
-            Rapporten med {sentBarcodesCount} streckkoder har skickats!
-          </p>
+          <div className="text-sm mb-6 space-y-2">
+            <p className="text-gray-600">
+              Rapporten med <strong>{sentBarcodesCount} poster</strong> har skickats!
+            </p>
+            {sentWeight > 0 && (
+              <p className="text-purple-600 font-medium">
+                Total vikt: {formatWeight(sentWeight)}
+              </p>
+            )}
+          </div>
           <Button onClick={() => setShowSuccessModal(false)} className="w-full">
             Fortsätt
           </Button>
