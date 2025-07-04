@@ -107,9 +107,20 @@ export default function ScannedBarcodesList({
                       </>
                     ) : (
                       <>
-                        <TableCell colSpan={4}>
+                        <TableCell>
+                          <div className="text-sm text-gray-500">-</div>
+                        </TableCell>
+                        <TableCell>
                           <div className="text-sm font-medium">{barcode.value}</div>
                           <div className="text-xs text-gray-500">{barcode.timestamp}</div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs">
+                            Streckkod
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="text-xs text-gray-400">-</div>
                         </TableCell>
                       </>
                     )}

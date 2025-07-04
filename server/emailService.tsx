@@ -35,7 +35,7 @@ export const emailService = {
         csvLines.push(`${index + 1};${parsed.orderNumber};${parsed.articleNumber};${parsed.batchNumber};${parsed.weight}`);
       } else {
         // Fallback för vanliga streckkoder
-        csvLines.push(`${index + 1};;;;${barcode};0`);
+        csvLines.push(`${index + 1};;;${barcode};0`);
       }
     });
     const csvContent = csvLines.join("\n");

@@ -109,6 +109,7 @@ Changelog:
 - July 03, 2025. Major bug fixes: Fixed API parameter order issues, login double-click problem, fetch override memory leaks, dialog accessibility warnings, case-insensitive usernames, and extended session duration to 7 days for better user experience
 - July 04, 2025. Critical session state bug fixes: Resolved stale closure issues where old barcodes reappeared after email sending, implemented functional state updates for proper React state management, fixed duplicate detection with latest state values, and corrected success modal to show accurate barcode count using persistent state before clearing
 - July 04, 2025. Enhanced QR code functionality: Added support for structured QR codes with semicolon-separated data (ordernummer;artikelnummer;batchnummer;vikt), implemented weight calculation and display in UI statistics card, enhanced email reports with order grouping and weight summaries, improved CSV export with proper headers and structured data parsing
+- July 04, 2025. Enhanced data entry interface: Created tabbed manual input with support for structured QR data entry, improved table view showing parsed QR components in separate columns, added visual distinction between QR codes and simple barcodes, implemented proper column layout for order/article/batch/weight data display
 
 ## User Preferences
 
