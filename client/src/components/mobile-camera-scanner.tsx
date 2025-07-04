@@ -106,7 +106,7 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
     <Card className="overflow-hidden">
       <div className="p-4 border-b">
         <h2 className="text-lg font-semibold mb-1">Kameraskanning</h2>
-        <p className="text-sm text-gray-600">Rikta kameran mot en streckkod</p>
+        <p className="text-sm text-gray-600">Rikta kameran mot en qr-kod</p>
       </div>
 
       {!cameraActive ? (
@@ -134,10 +134,18 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
 
           {/* 🔲 Visuell ram */}
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-72 h-24 border-2 border-white bg-white/10 rounded-lg relative">
-              <div className="absolute inset-x-0 top-1/2 h-0.5 bg-green-400 animate-pulse" />
+            <div className="w-48 h-48 relative">
+              {/* Hörn */}
+              <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-white rounded-tl-sm" />
+              <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-white rounded-tr-sm" />
+              <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-white rounded-bl-sm" />
+              <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-white rounded-br-sm" />
+
+              {/* Linje som är bredare än ramen */}
+              <div className="absolute left-1/2 top-1/2 w-64 h-0.5 bg-green-400 -translate-x-1/2 -translate-y-1/2" />
             </div>
           </div>
+
           <div className="absolute bottom-4 left-4 z-10">
             {/* ⛔ Stäng kamera-knapp */}
             <Button onClick={stopCamera} variant="destructive" size="sm">
@@ -165,34 +173,19 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
 
         {showManualInput && (
           <div className="bg-gray-50 rounded-lg p-4">
-            <Tabs defaultValue="simple" className="w-full">
+            <Tabs defaultValue="structured" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="simple" className="text-sm">
-                  <Keyboard className="h-4 w-4 mr-1" />
-                  Enkel kod
-                </TabsTrigger>
                 <TabsTrigger value="structured" className="text-sm">
-                  <Package className="h-4 w-4 mr-1" />
+                  <Keyboard className="h-4 w-4 mr-1" />
                   Strukturerad
+                </TabsTrigger>
+                <TabsTrigger value="simple" className="text-sm">
+                  <Package className="h-4 w-4 mr-1" />
+                  Enkel kod
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="simple" className="space-y-3 mt-3">
-                <Input
-                  placeholder="Skriv streckkod här..."
-                  value={manualInput}
-                  onChange={(e) => setManualInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
-                />
-                <Button
-                  onClick={handleManualSubmit}
-                  disabled={!manualInput.trim()}
-                  className="w-full"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Lägg till
-                </Button>
-              </TabsContent>
+
               
               <TabsContent value="structured" className="space-y-3 mt-3">
                 <div className="grid grid-cols-2 gap-2">
@@ -222,7 +215,7 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
                   <Label htmlFor="article-num" className="text-xs">Artikelnummer *</Label>
                   <Input
                     id="article-num"
-                    placeholder="1,0x100 S350 Z275 EVO"
+                    placeholder="S-3374-046-1565"
                     value={articleNumber}
                     onChange={(e) => setArticleNumber(e.target.value)}
                     className="text-sm"
@@ -247,6 +240,23 @@ export default function MobileCameraScanner({ onBarcodeScanned }: MobileCameraSc
                 >
                   <Package className="h-4 w-4 mr-2" />
                   Registrera QR-post
+                </Button>
+              </TabsContent>
+              
+              <TabsContent value="simple" className="space-y-3 mt-3">
+                <Input
+                  placeholder="Skriv streckkod här..."
+                  value={manualInput}
+                  onChange={(e) => setManualInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleManualSubmit()}
+                />
+                <Button
+                  onClick={handleManualSubmit}
+                  disabled={!manualInput.trim()}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Lägg till
                 </Button>
               </TabsContent>
             </Tabs>

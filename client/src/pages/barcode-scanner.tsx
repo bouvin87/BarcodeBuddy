@@ -6,7 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   FileText,
   Barcode,
@@ -21,7 +26,11 @@ import { useToast } from "@/hooks/use-toast";
 import MobileCameraScanner from "@/components/mobile-camera-scanner";
 import ScannedBarcodesList from "@/components/scanned-barcodes-list";
 import type { ScanSession } from "@shared/schema";
-import { parseQRCode, calculateTotalWeight, formatWeight } from "@shared/qr-parser";
+import {
+  parseQRCode,
+  calculateTotalWeight,
+  formatWeight,
+} from "@shared/qr-parser";
 
 interface ScannedBarcode {
   value: string;
@@ -40,8 +49,10 @@ export default function BarcodeScanner() {
   const [sentWeight, setSentWeight] = useState(0);
 
   // Calculate total weight from scanned barcodes
-  const totalWeight = calculateTotalWeight(scannedBarcodes.map(b => b.value));
-  const qrCodeCount = scannedBarcodes.filter(b => parseQRCode(b.value) !== null).length;
+  const totalWeight = calculateTotalWeight(scannedBarcodes.map((b) => b.value));
+  const qrCodeCount = scannedBarcodes.filter(
+    (b) => parseQRCode(b.value) !== null,
+  ).length;
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -81,7 +92,7 @@ export default function BarcodeScanner() {
     mutationFn: async (sessionId: number) => {
       const response = await apiRequest(
         "POST",
-        `/api/scan-sessions/${sessionId}/send-email`
+        `/api/scan-sessions/${sessionId}/send-email`,
       );
       return response.json();
     },
@@ -111,15 +122,15 @@ export default function BarcodeScanner() {
   const handleBarcodeScanned = async (barcode: string) => {
     // Use functional state update to check for duplicates with latest state
     let isDuplicate = false;
-    setScannedBarcodes(prevBarcodes => {
+    setScannedBarcodes((prevBarcodes) => {
       isDuplicate = prevBarcodes.some((b) => b.value === barcode);
       return prevBarcodes; // Don't update yet, just check
     });
-    
+
     if (isDuplicate) {
       toast({
         title: "Dublett upptäckt",
-        description: "Denna streckkod har redan skannats",
+        description: "Denna batch har redan skannats",
         variant: "destructive",
       });
       return;
@@ -134,7 +145,7 @@ export default function BarcodeScanner() {
     };
 
     let updatedBarcodes: ScannedBarcode[];
-    setScannedBarcodes(prevBarcodes => {
+    setScannedBarcodes((prevBarcodes) => {
       updatedBarcodes = [...prevBarcodes, newBarcode];
       return updatedBarcodes;
     });
@@ -142,7 +153,7 @@ export default function BarcodeScanner() {
     // Use setTimeout to ensure state has updated before creating session
     setTimeout(() => {
       const barcodeValues = updatedBarcodes.map((b) => b.value);
-      
+
       if (currentSessionId) {
         updateSessionMutation.mutate({
           id: currentSessionId,
@@ -157,7 +168,7 @@ export default function BarcodeScanner() {
     }, 0);
 
     toast({
-      title: "Streckkod skannad",
+      title: "Batch skannad",
       description: `${barcode} har lagts till`,
     });
   };
@@ -230,7 +241,7 @@ export default function BarcodeScanner() {
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white shadow-sm border-b border-gray-200  top-0 z-50">
         <div className="max-w-md mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -238,7 +249,7 @@ export default function BarcodeScanner() {
                 <Barcode className="text-primary-foreground text-sm" />
               </div>
               <h1 className="text-lg font-semibold text-gray-900">
-                Streckkodsskanner
+                BarcodeBuddy
               </h1>
             </div>
             <div className="flex items-center space-x-3">
@@ -295,9 +306,7 @@ export default function BarcodeScanner() {
                 <div className="text-2xl font-bold text-blue-600">
                   {scannedBarcodes.length}
                 </div>
-                <div className="text-xs text-blue-800 font-medium">
-                  TOTAL
-                </div>
+                <div className="text-xs text-blue-800 font-medium">TOTAL</div>
               </div>
               <div>
                 <div className="text-2xl font-bold text-green-600">
@@ -346,14 +355,10 @@ export default function BarcodeScanner() {
             ) : (
               <div className="flex items-center space-x-3">
                 <NotebookPen className="h-5 w-5" />
-                <span>Skicka rapport via e-post</span>
+                <span>Skicka följesedel via e-post</span>
               </div>
             )}
           </Button>
-
-          <p className="text-sm text-gray-500 text-center mt-3">
-            Rapporten skickas till konfigurerad e-postadress
-          </p>
         </Card>
       </main>
 
@@ -362,7 +367,7 @@ export default function BarcodeScanner() {
         <DialogContent className="max-w-sm mx-auto text-center">
           <DialogTitle className="sr-only">E-post skickad</DialogTitle>
           <DialogDescription className="sr-only">
-            Rapporten med streckkoder har skickats via e-post
+            Följesedel har skickats via e-post
           </DialogDescription>
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <Check className="h-8 w-8 text-green-600" />
@@ -372,7 +377,8 @@ export default function BarcodeScanner() {
           </h3>
           <div className="text-sm mb-6 space-y-2">
             <p className="text-gray-600">
-              Rapporten med <strong>{sentBarcodesCount} poster</strong> har skickats!
+              Följesedeln med <strong>{sentBarcodesCount} poster</strong> har
+              skickats!
             </p>
             {sentWeight > 0 && (
               <p className="text-purple-600 font-medium">
@@ -391,7 +397,7 @@ export default function BarcodeScanner() {
         <DialogContent className="max-w-sm mx-auto text-center">
           <DialogTitle className="sr-only">Fel uppstod</DialogTitle>
           <DialogDescription className="sr-only">
-            Ett fel uppstod när rapporten skulle skickas via e-post
+            Ett fel uppstod när följesedeln skulle skickas via e-post
           </DialogDescription>
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <AlertTriangle className="h-8 w-8 text-red-600" />
