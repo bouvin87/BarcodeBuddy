@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +47,9 @@ export default function BarcodeScanner() {
   const [currentSessionId, setCurrentSessionId] = useState<number | null>(null);
   const [sentBarcodesCount, setSentBarcodesCount] = useState(0);
   const [sentWeight, setSentWeight] = useState(0);
+  
+  // Ref to keep track of current barcodes for duplicate checking
+  const currentBarcodesRef = useRef<string[]>([]);
 
   // Calculate total weight from scanned barcodes
   const totalWeight = calculateTotalWeight(scannedBarcodes.map((b) => b.value));
@@ -103,6 +106,7 @@ export default function BarcodeScanner() {
       setShowSuccessModal(true);
       // Clear state immediately when email is sent
       setScannedBarcodes([]);
+      currentBarcodesRef.current = [];
       setCurrentSessionId(null);
       // Hide success modal after 3 seconds but keep form reset immediate
       setTimeout(() => {
@@ -120,8 +124,8 @@ export default function BarcodeScanner() {
   });
 
   const handleBarcodeScanned = async (barcode: string) => {
-    // Check for duplicates using current state
-    const isDuplicate = scannedBarcodes.some((b) => b.value === barcode);
+    // Check for duplicates using ref for immediate access to current state
+    const isDuplicate = currentBarcodesRef.current.includes(barcode);
 
     if (isDuplicate) {
       toast({
@@ -141,10 +145,11 @@ export default function BarcodeScanner() {
     };
 
     const updatedBarcodes = [...scannedBarcodes, newBarcode];
-    setScannedBarcodes(updatedBarcodes);
-
-    // Update session with new barcodes
     const barcodeValues = updatedBarcodes.map((b) => b.value);
+    
+    // Update both state and ref immediately
+    setScannedBarcodes(updatedBarcodes);
+    currentBarcodesRef.current = barcodeValues;
     
     if (currentSessionId) {
       updateSessionMutation.mutate({
@@ -166,10 +171,12 @@ export default function BarcodeScanner() {
 
   const handleRemoveBarcode = (index: number) => {
     const updatedBarcodes = scannedBarcodes.filter((_, i) => i !== index);
+    const barcodeValues = updatedBarcodes.map((b) => b.value);
+    
     setScannedBarcodes(updatedBarcodes);
+    currentBarcodesRef.current = barcodeValues;
 
     if (currentSessionId) {
-      const barcodeValues = updatedBarcodes.map((b) => b.value);
       updateSessionMutation.mutate({
         id: currentSessionId,
         barcodes: barcodeValues,
@@ -179,6 +186,7 @@ export default function BarcodeScanner() {
 
   const handleClearAll = () => {
     setScannedBarcodes([]);
+    currentBarcodesRef.current = [];
     setCurrentSessionId(null);
     toast({
       title: "Alla poster rensade",
